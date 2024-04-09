@@ -13,6 +13,9 @@ To clarify, the following is what this tool provides:
 - TODO: Custom build actions.
 - TODO: vscode task template.
 
+Note that Linux is not supported properly yet, but should be in the future.  
+MacOS will not be supported.  
+
 ## Usage
 Run `ssswtool.bat` either directly or `ssswtool` if it's on your PATH.  
 The file `script.lua` is the entrypoint, any files `require()` from there will be directly included into the output.  
@@ -25,5 +28,5 @@ If you want to use `ssswtool` anywhere, consider adding the `./SSSWTool/` to you
 See (usage)[#Usage] for how to use this tool.  
 
 **Pre-Built Binaries:**  
-The releases come with `luajit` pre-built, you can delete the files and it'll use your system version instead.  
-SelenScript also comes with pre-built libraries for `lfs` and `lpeglabel` in `./SelenScript/libs`.  
+The releases come with `luajit` pre-built for windows x64, you can delete the files and it'll use your system version instead.  
+SelenScript also comes with pre-built libraries for `lfs` and `lpeglabel` in `./SelenScript/libs` for windows x64.  
