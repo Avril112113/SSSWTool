@@ -1,7 +1,7 @@
 local args = assert(arg)
 
 local MAIN_PATH = assert(args[0])  -- Path to this file
-local TOOL_PATH = MAIN_PATH:find("[\\/]") and MAIN_PATH:gsub("[\\/][^\\/]*$", "") or "./"
+local TOOL_PATH = MAIN_PATH:find("[\\/]") and MAIN_PATH:gsub("[\\/][^\\/]*$", "") or "."
 local SELENSCRIPT_PATH = "SelenScript"
 do
 	-- Directory existence check, works on Windows and Linux

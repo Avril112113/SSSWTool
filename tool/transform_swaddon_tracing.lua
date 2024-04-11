@@ -62,7 +62,7 @@ function TransformerDefs:source(node)
 	---@cast source -?
 	if not source._SWAddon_Tracing_HasPrefix then
 		source._SWAddon_Tracing_HasPrefix = true
-		local ast, errors, comments = self.parser:parse(Utils.readFile(TRACING_PREFIX_FILE), TRACING_PREFIX_FILE)
+		local ast, errors, comments = self.parser:parse(Utils.readFile(TRACING_PREFIX_FILE), nil)
 		if #errors > 0 then
 			print_error("-- Parse Errors: " .. #errors .. " --")
 			for _, v in ipairs(errors) do
@@ -177,10 +177,10 @@ function TransformerDefs:funcbody(node)
 			)
 		)),
 		ASTNodes.expressionlist(node, ASTNodes.table(node, ASTNodes.fieldlist(node,
-			ASTNodes.field(node, ASTNodes.string(node, "name", true), ASTNodes.string(node, name, true)),
-			ASTNodes.field(node, ASTNodes.string(node, "line", true), ASTNodes.numeral(node, tostring(start_line))),
-			ASTNodes.field(node, ASTNodes.string(node, "column", true), ASTNodes.numeral(node, tostring(start_column))),
-			ASTNodes.field(node, ASTNodes.string(node, "file", true), ASTNodes.string(node, local_file_path:gsub("\\", "/"), true))
+			ASTNodes.field(node, ASTNodes.string(node, "name"), ASTNodes.string(node, name)),
+			ASTNodes.field(node, ASTNodes.string(node, "line"), ASTNodes.numeral(node, tostring(start_line))),
+			ASTNodes.field(node, ASTNodes.string(node, "column"), ASTNodes.numeral(node, tostring(start_column))),
+			ASTNodes.field(node, ASTNodes.string(node, "file"), ASTNodes.string(node, local_file_path:gsub("\\", "/")))
 		)))
 	))
 
