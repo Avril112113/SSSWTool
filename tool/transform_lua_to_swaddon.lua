@@ -12,8 +12,15 @@ local TransformerDefs = {}
 ---@param node ASTNode
 function TransformerDefs:index(node)
 	local call_node = node.index
-	if node.type == "index" and node.expr.name == "require" and #call_node.args == 1 and call_node.args[1].type == "string" then
-		local modpath = call_node.args[1].value:match("^[\"'](.*)[\"']$")
+	if node.type == "index" and node.expr.name == "require" then
+		local modpath
+		if call_node.args.type == "string" then
+			modpath = call_node.args.value:match("^[\"'](.*)[\"']$")
+		elseif #call_node.args == 1 and call_node.args[1].type == "string" then
+			modpath = call_node.args[1].value:match("^[\"'](.*)[\"']$")
+		else
+			return node
+		end
 		local filepath, err = package.searchpath(modpath, ("%s/?.lua;%s/?/init.lua;"):format(self.addon_dir, self.addon_dir))
 		self.required_files = self.required_files or {}
 		if err or not filepath then
