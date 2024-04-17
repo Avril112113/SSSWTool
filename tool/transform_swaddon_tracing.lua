@@ -1,7 +1,7 @@
 local modpath = ...
 ---@diagnostic disable-next-line: param-type-mismatch
 local modfolderpath = package.searchpath(modpath, package.path):gsub("[\\/][^\\/]*$", "")
-local TRACING_PREFIX_FILE = modfolderpath .. "/tracing_prefix.lua"
+local TRACING_PREFIX_SRC_FILE = modfolderpath .. "/src/tracing.lua"
 
 
 local Utils = require "SelenScript.utils"
@@ -55,14 +55,14 @@ function TransformerDefs:_get_root_source(node)
 	return source.type == "source" and source or nil
 end
 
-
----@param node ASTNodeSource
-function TransformerDefs:source(node)
+---@param node ASTNode
+---@return ASTNodeSource
+function TransformerDefs:_ensure_tracingblock(node)
 	local source = self:_get_root_source(node)
-	---@cast source -?
-	if not source._SWAddon_Tracing_HasPrefix then
-		source._SWAddon_Tracing_HasPrefix = true
-		local ast, errors, comments = self.parser:parse(Utils.readFile(TRACING_PREFIX_FILE), nil)
+	assert(source ~= nil, "source ~= nil")
+	if not self._SWAddon_TracingBlock then
+		self._SWAddon_TracingBlock = ASTNodes.block(source)
+		local ast, errors, comments = self.parser:parse(Utils.readFile(TRACING_PREFIX_SRC_FILE), "<SSSWTOOL>/src/tracing.lua")
 		if #errors > 0 then
 			print_error("-- Parse Errors: " .. #errors .. " --")
 			for _, v in ipairs(errors) do
@@ -70,35 +70,66 @@ function TransformerDefs:source(node)
 			end
 			os.exit(-1)
 		end
-		table.insert(source.block.block, 1, ast)
+		local block = self._SWAddon_TracingBlock
+		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#region SSSWTool-Tracing-src"))
+		table.insert(block, #block+1, ast)
+		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#endregion"))
+		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#region SSSWTool-Tracing-info"))
+		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#endregion"))
+		table.insert(source.block.block, 1, block)
+	end
+	return source
+end
+
+---@param node ASTNode
+---@param name string
+---@param start_line integer
+---@param start_column integer
+---@param local_file_path string
+function TransformerDefs:_add_trace_info(node, name, start_line, start_column, local_file_path)
+	self:_ensure_tracingblock(node)
+	-- Omitted +1 to be above the `--#endregion` comment
+	table.insert(self._SWAddon_TracingBlock, #self._SWAddon_TracingBlock, ASTNodes.assign(
+		node, nil,
+		ASTNodes.namelist(node, ASTNodes.index(
+			node, nil, ASTNodes.name(node, SPECIAL_NAME),
+			ASTNodes.index(
+				node, ".", ASTNodes.name(node, "_info"),
+				ASTNodes.index(node, "[", ASTNodes.numeral(node, tostring(self._swdbg_index)))
+			)
+		)),
+		ASTNodes.expressionlist(node, ASTNodes.table(node, ASTNodes.fieldlist(node,
+			ASTNodes.field(node, ASTNodes.string(node, "name"), ASTNodes.string(node, name)),
+			ASTNodes.field(node, ASTNodes.string(node, "line"), ASTNodes.numeral(node, tostring(start_line))),
+			ASTNodes.field(node, ASTNodes.string(node, "column"), ASTNodes.numeral(node, tostring(start_column))),
+			ASTNodes.field(node, ASTNodes.string(node, "file"), ASTNodes.string(node, local_file_path))
+		)))
+	))
+end
+
+
+---@param node ASTNodeSource
+function TransformerDefs:source(node)
+	local source = self:_get_root_source(node)
+	---@cast source -?
+	if not self._SWAddon_TracingBlock then
+		self._SWAddon_TracingBlock = ASTNodes.block(source)
+		local ast, errors, comments = self.parser:parse(Utils.readFile(TRACING_PREFIX_SRC_FILE), "<SSSWTOOL>/src/tracing.lua")
+		if #errors > 0 then
+			print_error("-- Parse Errors: " .. #errors .. " --")
+			for _, v in ipairs(errors) do
+				print_error(v.id .. ": " .. v.msg)
+			end
+			os.exit(-1)
+		end
+		local block = self._SWAddon_TracingBlock
+		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#region SSSWTOOL-Tracing"))
+		table.insert(block, #block+1, ast)
+		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#endregion"))
+		table.insert(source.block.block, 1, block)
 	end
 	return node
 end
-
--- ---@param node ASTNode
--- ---@param id integer
--- ---@param is_recur boolean?
--- local function recur_fill_in_custom_funcs(node, id, is_recur)
--- 	if node.type == "index" and node.expr.name == SPECIAL_NAME and node.index and node.index.expr.name == "get_my_info" then
--- 		local call = node.index.index
--- 		if call.type == "index" then
--- 			call = (call.expr.type == "call" and call.expr) or (call.index.type == "call" and call.index)
--- 		end
--- 		if not call or call.type ~= "call" then
--- 			return
--- 		end
--- 		if #call.args <= 0 then
--- 			table.insert(call.args, #call.args+1, ASTNodes.numeral(node, tostring(id)))
--- 		end
--- 	elseif is_recur == nil or node.type ~= "funcbody" then
--- 		for i, v in pairs(node) do
--- 			if type(v) == "table" and v.type ~= nil then
--- 				recur_fill_in_custom_funcs(v, id, true)
--- 			end
--- 		end
--- 	end
--- end
-
 
 ---@param node ASTNode
 function TransformerDefs:_generate_check_call(node, name)
@@ -152,37 +183,17 @@ function TransformerDefs:funcbody(node)
 	if name == nil then
 		name = "anonymous:"..self._swdbg_index
 	end
-	local source_block_index = 1
-	for i, v in ipairs(root_source_node.block.block) do
-		if v.type == "assign" then
-			local name_index = v.names[1]
-			if
-				name_index.expr and name_index.expr.name == "SS_SW_DBG" and
-				name_index.index and name_index.index.expr and name_index.index.expr.name == "_info"
-			then
-				source_block_index = i + 1
-			end
-		end
-	end
 	local local_source_node = self:find_parent_of_type(node, "source")
 	assert(local_source_node ~= nil, "local_source_node ~= nil")
-	local local_file_path = local_source_node.file:sub(#self.addon_dir+2)
-	table.insert(root_source_node.block.block, source_block_index, ASTNodes.assign(
-		node, nil,
-		ASTNodes.namelist(node, ASTNodes.index(
-			node, nil, ASTNodes.name(node, SPECIAL_NAME),
-			ASTNodes.index(
-				node, ".", ASTNodes.name(node, "_info"),
-				ASTNodes.index(node, "[", ASTNodes.numeral(node, tostring(self._swdbg_index)))
-			)
-		)),
-		ASTNodes.expressionlist(node, ASTNodes.table(node, ASTNodes.fieldlist(node,
-			ASTNodes.field(node, ASTNodes.string(node, "name"), ASTNodes.string(node, name)),
-			ASTNodes.field(node, ASTNodes.string(node, "line"), ASTNodes.numeral(node, tostring(start_line))),
-			ASTNodes.field(node, ASTNodes.string(node, "column"), ASTNodes.numeral(node, tostring(start_column))),
-			ASTNodes.field(node, ASTNodes.string(node, "file"), ASTNodes.string(node, local_file_path:gsub("\\", "/")))
-		)))
-	))
+	local local_file_path = "<UNKNOWN>"
+	if local_source_node.file then
+		if local_source_node.file:find("^<SSSWTOOL>/") then
+			local_file_path = local_source_node.file:gsub("\\", "/")
+		else
+			local_file_path = local_source_node.file:sub(#self.addon_dir+2):gsub("\\", "/")
+		end
+	end
+	self:_add_trace_info(node, name, start_line, start_column, local_file_path)
 
 	return ASTNodes.funcbody(
 		node,

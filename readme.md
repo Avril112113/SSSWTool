@@ -8,7 +8,7 @@ As it is right now, it's not considered a replacement for other tools until furt
 To clarify, the following is what this tool provides:
 - Combining multiple files into one.
 - Optional tracing with `--trace` which provides full stack traces at runtime with source file, line and column info
-- TODO: Config file (for predefined options and output path, eg)
+- TODO: Config file (for predefined options and output path, etc)
 - TODO: Build output path.
 - TODO: Custom build actions.
 - TODO: vscode task template.
