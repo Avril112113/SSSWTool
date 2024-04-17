@@ -116,6 +116,7 @@ function TransformerDefs:index(node)
 			print_error(("Failed to find '%s'%s"):format(modpath, err))
 			return ASTNodes.LongComment(node, nil, ("Failed to find '%s'"):format(modpath))
 		else
+			filepath = filepath:gsub("\\", "/")
 			if self.required_files[filepath] == nil then
 				local filepath_local = filepath:gsub("^"..Utils.escape_pattern(self.addon_dir).."/?", "")
 				print_info(("Parsing '%s'"):format(filepath_local))
