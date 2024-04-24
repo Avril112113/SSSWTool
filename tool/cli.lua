@@ -1,5 +1,6 @@
 require "tool.cli_print"
-local Build = require "tool.build"
+
+local MultiProject = require "tool.multi_project"
 
 
 local CLI = {}
@@ -59,7 +60,14 @@ CLI.actions = {
 		handler = function(args, pos)
 			local addon_dir = args[pos] or "./"
 			pos = pos + 1
-			Build.build(addon_dir)
+			local multi_project, err = MultiProject.new(addon_dir .. "/ssswtool.json")
+			if not multi_project or err then
+				print_error(err or "FAIL project ~= nil")
+				return -1
+			end
+			multi_project:build()
+			-- TODO: Check for any projects that failed to build and return -1 if so.
+			return 0
 		end,
 	},
 }

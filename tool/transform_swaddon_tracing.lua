@@ -34,9 +34,7 @@ local EVENT_HOOKS = {
 	-- ["onSpawnAddonComponent"]=1,
 }
 
----@class Transformer_SWAddon_Tracing : Transformer
----@field parser Parser
----@field addon_dir string
+---@class SSSWTool.Transformer_Tracing : SSSWTool.Transformer
 local TransformerDefs = {}
 
 
@@ -187,10 +185,10 @@ function TransformerDefs:funcbody(node)
 	assert(local_source_node ~= nil, "local_source_node ~= nil")
 	local local_file_path = "<UNKNOWN>"
 	if local_source_node.file then
-		if local_source_node.file:find("^<SSSWTOOL>/") then
+		if local_source_node.file:find("^<SSSWTOOL>[\\/]") then
 			local_file_path = local_source_node.file:gsub("\\", "/")
 		else
-			local_file_path = local_source_node.file:sub(#self.addon_dir+2):gsub("\\", "/")
+			local_file_path = local_source_node.file:sub(#self.multiproject.project_path+2):gsub("\\", "/")
 		end
 	end
 	self:_add_trace_info(node, name, start_line, start_column, local_file_path)

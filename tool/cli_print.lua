@@ -40,7 +40,8 @@ local function _print(mode, ...)
 	for i=1,select("#", ...) do
 		values[i] = tostring(values[i])
 	end
-	print(("%s[%s%s%s]:%s%s %s"):format(Colors.fix, MODE_COLORS[mode], mode, Colors.fix, Colors.reset, string.rep(" ", 5-#mode), table.concat(values, "\t")))
+	local s = table.concat(values, "\t"):gsub("\n", "%0" .. string.rep(" ", 9))
+	print(("%s[%s%s%s]:%s%s %s"):format(Colors.fix, MODE_COLORS[mode], mode, Colors.fix, Colors.reset, string.rep(" ", 5-#mode), s))
 end
 
 ---@param ... any

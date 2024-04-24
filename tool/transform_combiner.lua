@@ -9,9 +9,7 @@ local ASTNodes = ASTHelpers.Nodes
 local AST = require "SelenScript.parser.ast"  -- Used for debugging.
 
 
----@class Transformer_Lua_to_SWAddon : Transformer
----@field parser Parser
----@field addon_dir string
+---@class SSSWTool.Transformer_Combiner : SSSWTool.Transformer
 ---@field required_files table<string,ASTNodeSource|false>
 local TransformerDefs = {}
 
@@ -92,7 +90,7 @@ function TransformerDefs:index(node)
 		else
 			return node
 		end
-		local filepath, err = package.searchpath(modpath, ("%s/?.lua;%s/?/init.lua;"):format(self.addon_dir, self.addon_dir))
+		local filepath, filepath_local, err = self.project:findModFile(modpath)
 		self.required_files = self.required_files or {}
 		if err or not filepath then
 			print_error(("Failed to find '%s'%s"):format(modpath, err))
@@ -100,7 +98,6 @@ function TransformerDefs:index(node)
 		else
 			filepath = filepath:gsub("\\", "/")
 			if self.required_files[filepath] == nil then
-				local filepath_local = filepath:gsub("^"..Utils.escape_pattern(self.addon_dir).."/?", "")
 				print_info(("Parsing '%s'"):format(filepath_local))
 				local ast, errors, comments = self.parser:parse(Utils.readFile(filepath), filepath)
 				if #errors > 0 then
