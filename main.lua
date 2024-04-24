@@ -12,8 +12,14 @@ do
 	end
 end
 
+jit = jit or select(2, pcall(require, "jit"))
+if not jit then
+	print("Must be run with LuaJIT, not " .. _VERSION)
+	os.exit(-1)
+end
+local binary_ext = jit.os == "Windows" and "dll" or "so"
 package.path = ("{TP}/?.lua;{TP}/?/init.lua;{SSP}/libs/?.lua;{SSP}/libs/?/init.lua;{SSP}/?.lua;{SSP}/?/init.lua;"):gsub("{TP}", TOOL_PATH):gsub("{SSP}", SELENSCRIPT_PATH)
-package.cpath = ("{TP}/?.dll;{SSP}/libs/?.dll;"):gsub("{TP}", TOOL_PATH):gsub("{SSP}", SELENSCRIPT_PATH)
+package.cpath = ("{TP}/?.{EXT};{SSP}/libs/?.{EXT};"):gsub("{TP}", TOOL_PATH):gsub("{SSP}", SELENSCRIPT_PATH):gsub("{EXT}", binary_ext)
 
 local CLI = require "tool.cli"
 
