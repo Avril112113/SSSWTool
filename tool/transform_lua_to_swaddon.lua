@@ -51,24 +51,6 @@ function TransformerDefs:_add_require(node, func_node, modpath, filepath)
 
 		block = ASTNodes.block(source,
 			ASTNodes.LineComment(source, "--", "#region SSSWTool-Require-src"),
-			ASTNodes.assign(source, nil,
-				ASTNodes.namelist(source,
-					ASTNodes.name(source, "__SSSWTOOL_REQUIRES")),
-					ASTNodes.expressionlist(source, ASTNodes.table(source, ASTNodes.fieldlist(source))
-				)
-			),
-			ASTNodes.assign(source, nil,
-				ASTNodes.namelist(source,
-					ASTNodes.name(source, "__SSSWTOOL_MOD_TO_FILEPATH")),
-					ASTNodes.expressionlist(source, ASTNodes.table(source, ASTNodes.fieldlist(source))
-				)
-			),
-			ASTNodes.assign(source, nil,
-				ASTNodes.namelist(source,
-					ASTNodes.name(source, "__SSSWTOOL_RESULTS")),
-					ASTNodes.expressionlist(source, ASTNodes.table(source, ASTNodes.fieldlist(source))
-				)
-			),
 			require_src_ast,
 			ASTNodes.LineComment(source, "--", "#endregion")
 		)
