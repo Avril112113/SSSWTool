@@ -1,4 +1,5 @@
 local Utils = require "SelenScript.utils"
+local AVPath = require "avpath"
 
 local Config = require "tool.config"
 local Project = require "tool.project"
@@ -16,8 +17,8 @@ MultiPorject.__index = MultiPorject
 ---@param config_path string
 function MultiPorject.new(config_path)
 	local self = setmetatable({}, MultiPorject)
-	self.config_path = config_path:gsub("\\", "/"):gsub("^%./", ""):gsub("/$", "")
-	self.project_path = self.config_path:match("^(.*)/") or error("Failed to get parent dir from config path.")
+	self.config_path = AVPath.norm(config_path)
+	self.project_path = AVPath.base(config_path)
 
 	self.projects = {}
 	self.config = Config.new()
@@ -73,7 +74,7 @@ function MultiPorject:build()
 	local results = {}
 	for _, project in ipairs(self.projects) do
 		print()
-		print_info(("Buidling '%s'"):format(project.config.name))
+		print_info(("Building '%s'"):format(project.config.name or AVPath.relative(project.config_path, self.project_path)))
 		local result = {project:build()}
 		table.insert(results, {project, result})
 	end

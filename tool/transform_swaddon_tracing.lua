@@ -1,8 +1,6 @@
 local modpath = ...
----@diagnostic disable-next-line: param-type-mismatch
-local modfolderpath = package.searchpath(modpath, package.path):gsub("[\\/][^\\/]*$", "")
-local TRACING_PREFIX_SRC_FILE = modfolderpath .. "/src/tracing.lua"
 
+local AVPath = require "avpath"
 
 local Utils = require "SelenScript.utils"
 local ASTHelpers = require "SelenScript.transformer.ast_helpers"
@@ -10,6 +8,9 @@ local relabel = require "relabel"
 local ASTNodes = ASTHelpers.Nodes
 local Emitter = require "SelenScript.emitter.emitter"
 local AST = require "SelenScript.parser.ast"
+
+---@diagnostic disable-next-line: param-type-mismatch
+local TRACING_PREFIX_SRC_FILE = AVPath.join{package.searchpath(modpath, package.path), "../src/tracing.lua"}
 
 
 --- Used for converting AST nodes into strings
@@ -186,9 +187,9 @@ function TransformerDefs:funcbody(node)
 	local local_file_path = "<UNKNOWN>"
 	if local_source_node.file then
 		if local_source_node.file:find("^<SSSWTOOL>[\\/]") then
-			local_file_path = local_source_node.file:gsub("\\", "/")
+			local_file_path = AVPath.norm(local_source_node.file)
 		else
-			local_file_path = local_source_node.file:sub(#self.multiproject.project_path+2):gsub("\\", "/")
+			local_file_path = AVPath.relative(local_source_node.file, self.multiproject.project_path)
 		end
 	end
 	self:_add_trace_info(node, name, start_line, start_column, local_file_path)

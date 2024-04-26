@@ -22,5 +22,7 @@ package.path = ("{TP}/?.lua;{TP}/?/init.lua;{SSP}/libs/?.lua;{SSP}/libs/?/init.l
 package.cpath = ("{TP}/?.{EXT};{SSP}/libs/?.{EXT};"):gsub("{TP}", TOOL_PATH):gsub("{SSP}", SELENSCRIPT_PATH):gsub("{EXT}", binary_ext)
 
 local CLI = require "tool.cli"
+local AVPath = require "avpath"
+AVPath.SEPERATOR = "/"
 
 os.exit(CLI.process(args) or 0)

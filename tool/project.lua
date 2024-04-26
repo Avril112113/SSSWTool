@@ -1,4 +1,5 @@
 local lfs = require "lfs"
+local AVPath = require "avpath"
 
 local Parser = require "SelenScript.parser.parser"
 local Transformer = require "SelenScript.transformer.transformer"
@@ -105,8 +106,8 @@ end
 function Project:findSrcFile(path)
 	local searched = {}
 	local function check(base)
-		local src_path = (base .. "/" .. path):gsub("\\", "/"):gsub("^%./", ""):gsub("/$", "")
-		local full_path = self.multiproject.project_path .. "/" .. src_path
+		local src_path = AVPath.join{base, path}
+		local full_path = AVPath.join{self.multiproject.project_path, src_path}
 		table.insert(searched, ("no file '%s'"):format(full_path))
 		if path_is(full_path, "file") then
 			return full_path, src_path
@@ -131,20 +132,21 @@ function Project:findModFile(modpath, path)
 	path = path or "?.lua;?/init.lua;"
 	local path_parts = {}
 	local srcs = type(self.config.src) == "string" and {self.config.src} or self.config.src
+	---@cast srcs string[]
 	---@diagnostic disable-next-line: param-type-mismatch
 	for _, src in ipairs(srcs) do
 		if #src > 0 then
 			local new_repl = path:gsub(
 				"%?",
-				((self.multiproject.project_path .. "/" .. src .. "/?"):gsub("\\", "/"):gsub("^%./", ""):gsub("%/./", "/"):gsub("/$", ""))
+				AVPath.join{self.multiproject.project_path, src, "?"}
 			)
 			table.insert(path_parts, new_repl)
 		end
 	end
 	local full_path, err = package.searchpath(modpath, table.concat(path_parts, ";"))
 	if full_path then
-		full_path = full_path:gsub("\\", "/"):gsub("^%./", ""):gsub("/%./", "/"):gsub("/$", "")
-		local src_path = full_path:sub(#self.multiproject.project_path+2, -1)
+		full_path = AVPath.norm(full_path)
+		local src_path = AVPath.relative(full_path, self.multiproject.project_path)
 		return full_path, src_path, nil
 	end
 	return nil, nil, err
@@ -231,7 +233,7 @@ function Project:build()
 				if path:match("^<SSSWTOOL>/") then
 					return path
 				end
-				return ("../%s"):format(path:sub(#self.multiproject.project_path+2, -1))
+				return ("../%s"):format(AVPath.relative(path, self.multiproject.project_path))
 			end
 		})
 

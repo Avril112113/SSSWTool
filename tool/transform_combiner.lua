@@ -1,12 +1,14 @@
 local modpath = ...
----@diagnostic disable-next-line: param-type-mismatch
-local modfolderpath = package.searchpath(modpath, package.path):gsub("[\\/][^\\/]*$", "")
-local REQUIRE_SRC_FILE = modfolderpath .. "/src/require.lua"
+
+local AVPath = require "avpath"
 
 local Utils = require "SelenScript.utils"
 local ASTHelpers = require "SelenScript.transformer.ast_helpers"
 local ASTNodes = ASTHelpers.Nodes
 local AST = require "SelenScript.parser.ast"  -- Used for debugging.
+
+---@diagnostic disable-next-line: param-type-mismatch
+local REQUIRE_SRC_FILE = AVPath.join{package.searchpath(modpath, package.path), "../src/require.lua"}
 
 
 ---@class SSSWTool.Transformer_Combiner : SSSWTool.Transformer
@@ -96,7 +98,7 @@ function TransformerDefs:index(node)
 			print_error(("Failed to find '%s'%s"):format(modpath, err))
 			return ASTNodes.LongComment(node, nil, ("Failed to find '%s'"):format(modpath))
 		else
-			filepath = filepath:gsub("\\", "/")
+			filepath = AVPath.norm(filepath)
 			if self.required_files[filepath] == nil then
 				print_info(("Parsing '%s'"):format(filepath_local))
 				local ast, errors, comments = self.parser:parse(Utils.readFile(filepath), filepath)
