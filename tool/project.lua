@@ -136,11 +136,17 @@ function Project:findModFile(modpath, path)
 	---@diagnostic disable-next-line: param-type-mismatch
 	for _, src in ipairs(srcs) do
 		if #src > 0 then
-			local new_repl = path:gsub(
-				"%?",
-				AVPath.join{self.multiproject.project_path, src, "?"}
-			)
-			table.insert(path_parts, new_repl)
+			if AVPath.getabs(src) then
+				table.insert(path_parts, (path:gsub(
+					"%?",
+					AVPath.join{src, "?"}
+				)))
+			else
+				table.insert(path_parts, (path:gsub(
+					"%?",
+					AVPath.join{self.multiproject.project_path, src, "?"}
+				)))
+			end
 		end
 	end
 	local full_path, err = package.searchpath(modpath, table.concat(path_parts, ";"))
