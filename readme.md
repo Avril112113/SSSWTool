@@ -7,7 +7,7 @@ As it is right now, it's not considered a replacement for other tools until furt
 
 The following is what this tool provides:
 - Combining multiple files into one.
-- Optional tracing with `--trace` which provides full stack traces at runtime with source file, line and column info.
+- Optional tracing which provides full stack traces at runtime with source file, line and column info.
 - Single and Multi project config files.
 - Specify 1 or more output paths to automatically update addon's script.
 - TODO: Custom build actions.
