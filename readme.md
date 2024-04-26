@@ -30,10 +30,10 @@ You may create a `ssswtool.json` to customize the build process, it is high reco
 
 ## JSON Config format
 This section describes the format of `ssswtool.json` and any referenced configs by it.  
-NOTE that comments are NOT supported, they must be removed from the examples to utilize them.
+NOTE that comments are not supported, they must be removed from the examples to utilize them.
 
 Basic usage example (values represent default)  
-```json
+```jsonc
 {
 	// "name" defaults to the containing directory name if not provided.
 	"name": "some_addon",
@@ -43,17 +43,20 @@ Basic usage example (values represent default)
 	// This can be an array, eg [".", "/PATH/TO/SOME/LIB"]
 	"src": ".",
 	"transformers": {
-		// The combiner makes `require()` work by including the files and providing a custom implementation of `require()`, which works similar to standalone Lua.
+		// The combiner makes `require()` work by including files and providing a custom
+		// implementation of `require()`, which works similar to standalone Lua.
 		"combiner": true,
-		// Tracing add compile time tracing information which is used to generate stack traces with correct file names and line numbers in-game.
-		// this should be `false` for releases as it affects runtime performance and will greatly impact the output size.
+		// Tracing add compile time tracing information which is used to
+		// generate stack traces with correct file names and line numbers in-game.
+		// This should be `false` for releases
+		// as it affects runtime performance and will greatly impact the output size.
 		"tracing": false
 	}
 }
 ```
 
 Multi-Project and config reference example
-```json
+```jsonc
 // Multi project configs start with an array.
 [
 	// Refer to another project's config.
