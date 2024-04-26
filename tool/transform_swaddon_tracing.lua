@@ -18,23 +18,6 @@ local emitter = Emitter.new("lua", {})
 
 local SPECIAL_NAME = "SS_SW_DBG"
 
-local EVENT_HOOKS = {
-	["onTick"]=1,
-	-- ["onTick"]=1, ["onCreate"]=1, ["onDestroy"]=1, ["onCustomCommand"]=1, ["onChatMessage"]=1, ["httpReply"]=1,
-	-- ["onPlayerJoin"]=1, ["onPlayerLeave"]=1, ["onPlayerRespawn"]=1, ["onPlayerDie"]=1, ["onPlayerSit"]=1, ["onPlayerUnsit"]=1,
-	-- ["onToggleMap"]=1,
-	-- ["onCharacterSit"]=1, ["onCharacterUnsit"]=1, ["onCharacterPickup"]=1,
-	-- ["onCreatureSit"]=1, ["onCreatureUnsit"]=1, ["onCreaturePickup"]=1,
-	-- ["onEquipmentPickup"]=1, ["onEquipmentDrop"]=1,
-	-- ["onGroupSpawn"]=1, ["onVehicleSpawn"]=1, ["onVehicleDespawn"]=1, ["onVehicleLoad"]=1, ["onVehicleUnload"]=1, ["onVehicleTeleport"]=1,
-	-- ["onVehicleDamaged"]=1,
-	-- ["onButtonPress"]=1,
-	-- ["onObjectLoad"]=1, ["onObjectUnload"]=1,
-	-- ["onFireExtinguished"]=1, ["onForestFireSpawned"]=1, ["onForestFireExtinguised"]=1,
-	-- ["onTornado"]=1, ["onMeteor"]=1, ["onTsunami"]=1, ["onWhirlpool"]=1, ["onVolcano"]=1, ["onOilSpill"]=1,
-	-- ["onSpawnAddonComponent"]=1,
-}
-
 ---@class SSSWTool.Transformer_Tracing : SSSWTool.Transformer
 local TransformerDefs = {}
 
@@ -127,23 +110,49 @@ function TransformerDefs:source(node)
 		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#endregion"))
 		table.insert(source.block.block, 1, block)
 	end
+	-- Transforming is depth-first.
+	-- So, if `node == root_source` then we have finish transforming everything and can check if onTick or httpReply is missing.
+	if node == source then
+		print_warn("TODO: Check if onTick or httpReply is missing.")
+	end
 	return node
 end
 
 ---@param node ASTNode
-function TransformerDefs:_generate_check_call(node, name)
-	table.insert(node.block, 1, ASTNodes.index(
-		node, nil, ASTNodes.name(node, SPECIAL_NAME),
-		ASTNodes.index(
-			node, ".", ASTNodes.name(node, "check_stack"),
-			ASTNodes.call(
-				node, ASTNodes.expressionlist(
-					node,
-					ASTNodes.numeral(node, tostring(EVENT_HOOKS[name]))
+---@return ASTNode
+function TransformerDefs:_generate_onTick_code(node)
+	return ASTNodes.block(node,
+			ASTNodes.index(
+				node, nil, ASTNodes.name(node, SPECIAL_NAME),
+				ASTNodes.index(
+					node, ".", ASTNodes.name(node, "check_stack"),
+					ASTNodes.call(node, ASTNodes.expressionlist(node, ASTNodes.numeral(node, "0")))
+				)
+			),
+			ASTNodes.index(
+				node, nil, ASTNodes.name(node, SPECIAL_NAME),
+				ASTNodes.index(
+					node, ".", ASTNodes.name(node, "_sendCheckStackHttp"),
+					ASTNodes.call(node, ASTNodes.expressionlist(node))
 				)
 			)
 		)
-	))
+end
+
+---@param node ASTNode
+---@return ASTNode
+function TransformerDefs:_generate_httpReply_code(node)
+	return ASTNodes["if"](
+			node,
+			ASTNodes.index(
+				node, nil, ASTNodes.name(node, SPECIAL_NAME),
+				ASTNodes.index(
+					node, ".", ASTNodes.name(node, "_handleHttp"),
+					ASTNodes.call(node, node.args)
+				)
+			),
+			ASTNodes.block(node, ASTNodes["return"](node, ASTNodes.expressionlist(node)))
+		)
 end
 
 ---@param node ASTNode
@@ -153,14 +162,20 @@ function TransformerDefs:funcbody(node)
 	assert(root_source_node ~= nil, "root_source_node ~= nil")
 	local start_line, start_column = relabel.calcline(root_source_node.source, node.start)
 
+	---@type ASTNode?
+	local prepend_node
 	local name
 	local parent_node = self:get_parent(node)
 	if parent_node.type == "functiondef" then
 		name = emitter:generate(parent_node.name)
 		if name:sub(1, #SPECIAL_NAME) == SPECIAL_NAME then
 			return node
-		elseif EVENT_HOOKS[name] then
-			self:_generate_check_call(node, name)
+		elseif parent_node.scope ~= "local" then
+			if name == "onTick" then
+				prepend_node = self:_generate_onTick_code(node)
+			elseif name == "httpReply" then
+				prepend_node = self:_generate_httpReply_code(node)
+			end
 		end
 	elseif parent_node.type == "function" then
 		local parent_expressionlist_node = self:get_parent(parent_node)
@@ -171,8 +186,12 @@ function TransformerDefs:funcbody(node)
 				local name_node = parent_assign_node.names[index]
 				if name_node then
 					name = emitter:generate(name_node)
-					if EVENT_HOOKS[name] then
-						self:_generate_check_call(node, name)
+					if parent_assign_node.scope ~= "local" then
+						if name == "onTick" then
+							prepend_node = self:_generate_onTick_code(node)
+						elseif name == "httpReply" then
+							prepend_node = self:_generate_httpReply_code(node)
+						end
 					end
 				end
 			end
@@ -194,28 +213,32 @@ function TransformerDefs:funcbody(node)
 	end
 	self:_add_trace_info(node, name, start_line, start_column, local_file_path)
 
-	return ASTNodes.funcbody(
-		node,
-		ASTNodes.varlist(node, ASTNodes.var_args(node)),
-		ASTNodes.block(node,
-			ASTNodes["return"](node, ASTNodes.expressionlist(
-				node,
+	local newblock = ASTNodes.block(node,
+		ASTNodes["return"](node, ASTNodes.expressionlist(
+			node,
+			ASTNodes.index(
+				node, nil, ASTNodes.name(node, SPECIAL_NAME),
 				ASTNodes.index(
-					node, nil, ASTNodes.name(node, SPECIAL_NAME),
-					ASTNodes.index(
-						node, ".", ASTNodes.name(node, "_trace_func"),
-						ASTNodes.call(
-							node, ASTNodes.expressionlist(
-								node,
-								ASTNodes.numeral(node, tostring(self._swdbg_index)),
-								ASTNodes["function"](node, node),
-								ASTNodes.var_args(node)
-							)
+					node, ".", ASTNodes.name(node, "_trace_func"),
+					ASTNodes.call(
+						node, ASTNodes.expressionlist(
+							node,
+							ASTNodes.numeral(node, tostring(self._swdbg_index)),
+							ASTNodes["function"](node, node),
+							ASTNodes.var_args(node)
 						)
 					)
 				)
-			))
-		)
+			)
+		))
+	)
+	if prepend_node then
+		table.insert(newblock, 1, prepend_node)
+	end
+	return ASTNodes.funcbody(
+		node,
+		ASTNodes.varlist(node, ASTNodes.var_args(node)),
+		newblock
 	)
 end
 

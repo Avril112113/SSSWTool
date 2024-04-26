@@ -3,7 +3,10 @@
 
 ---@alias SS_SW_DBG.INFO {name:string, line:integer, column:integer, file:string}
 
-SS_SW_DBG = {}
+-- Local is fine, since all combined files will be after this file.
+-- It also prevents accidential recursion with `_ENV`
+---@class SS_SW_DBG
+local SS_SW_DBG = {}
 ---@type integer[]
 SS_SW_DBG._stack = {}
 
@@ -25,6 +28,18 @@ function SS_SW_DBG._trace_func(id, f, ...)
 	local results = {f(...)}
 	SS_SW_DBG._trace_exit(id)
 	return table.unpack(results)
+end
+
+function SS_SW_DBG._sendCheckStackHttp()
+	server.httpGet(0, "SSSWTool-tracing-check_stack")
+end
+
+function SS_SW_DBG._handleHttp(port, request)
+	if port == 0 and request == "SSSWTool-tracing-check_stack" then
+		SS_SW_DBG.check_stack(0)
+		return true
+	end
+	return false
 end
 
 ---@param depth integer?
