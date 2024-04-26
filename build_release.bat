@@ -22,3 +22,5 @@ FOR /F "tokens=* USEBACKQ" %%F IN (`where luajit`) DO SET LUAJIT_PATH=%%F
 echo %LUAJIT_PATH%
 copy "%LUAJIT_PATH%" "./release/luajit.exe"
 copy "%LUAJIT_PATH%/../lua51.dll" "./release/lua51.dll"
+
+7za a SSSWTool.zip ./release/*
