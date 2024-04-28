@@ -81,7 +81,7 @@ function CLI.process(args)
 	end
 	local action = CLI.actions[args[1]]
 	if action == nil then
-		print(("Action '%s' does not exist."):format(args[1]))
+		print(("Invalid action '%s'.\nTry 'help' for available actions."):format(args[1]))
 		return -1
 	end
 	return action.handler(args, 2)
