@@ -173,7 +173,9 @@ function Project:build()
 	do
 		local errors
 		print_info("Creating parser")
-		parser, errors = Parser.new()
+		parser, errors = Parser.new({
+			selenscript=false,
+		})
 		if #errors > 0 then
 			print_error("-- Parser creation Errors: " .. #errors .. " --")
 			for _, v in ipairs(errors) do
@@ -232,7 +234,11 @@ function Project:build()
 	local script_out
 	do
 		print_info("Emitting Lua")
-		local emitter_lua = Emitter.new("lua", {})
+		---@type LuaEmitterConfig
+		local emitter_config = {
+			luacats_source=true,
+		}
+		local emitter_lua = Emitter.new("lua", emitter_config)
 		local script_out_source_map
 		script_out, script_out_source_map = emitter_lua:generate(ast, {
 			get_source_path = function(path)
@@ -242,7 +248,6 @@ function Project:build()
 				return ("../%s"):format(AVPath.relative(path, self.multiproject.project_path))
 			end
 		})
-
 		print_info("Writing to '_build'")
 		lfs.mkdir(self.multiproject.project_path .. "/_build")
 		Utils.writeFile(self.multiproject.project_path .. "/_build/" .. self.config.name .. ".lua", script_out)

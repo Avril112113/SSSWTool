@@ -25,4 +25,8 @@ local CLI = require "tool.cli"
 local AVPath = require "avpath"
 AVPath.SEPERATOR = "/"
 
-os.exit(CLI.process(args) or 0)
+local status = CLI.process(args) or 0
+-- If the LuaJIT profiler is being used, don't use os.exit as it wont print the results.
+if not package.loaded["jit.p"] then
+	os.exit(status or 0)
+end
