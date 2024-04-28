@@ -73,7 +73,7 @@ function TransformerDefs:_add_trace_info(node, name, start_line, start_column, l
 	-- Omitted +1 to be above the `--#endregion` comment
 	table.insert(self._SWAddon_TracingBlock, #self._SWAddon_TracingBlock, ASTNodes.assign(
 		node, nil,
-		ASTNodes.namelist(node, ASTNodes.index(
+		ASTNodes.varlist(node, ASTNodes.index(
 			node, nil, ASTNodes.name(node, SPECIAL_NAME),
 			ASTNodes.index(
 				node, ".", ASTNodes.name(node, "_info"),
@@ -92,10 +92,9 @@ end
 
 ---@param node ASTNodeSource
 function TransformerDefs:source(node)
-	local source = self:_get_root_source(node)
-	---@cast source -?
+	local root_source = assert(self:_get_root_source(node), "root_source_node ~= nil")
 	if not self._SWAddon_TracingBlock then
-		self._SWAddon_TracingBlock = ASTNodes.block(source)
+		self._SWAddon_TracingBlock = ASTNodes.block(root_source)
 		local ast, errors, comments = self.parser:parse(Utils.readFile(TRACING_PREFIX_SRC_FILE), "<SSSWTOOL>/src/tracing.lua")
 		if #errors > 0 then
 			print_error("-- Parse Errors: " .. #errors .. " --")
@@ -105,15 +104,39 @@ function TransformerDefs:source(node)
 			os.exit(-1)
 		end
 		local block = self._SWAddon_TracingBlock
-		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#region SSSWTOOL-Tracing"))
+		table.insert(block, #block+1, ASTNodes.LineComment(root_source, "--", "#region SSSWTOOL-Tracing"))
 		table.insert(block, #block+1, ast)
-		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#endregion"))
-		table.insert(source.block.block, 1, block)
+		table.insert(block, #block+1, ASTNodes.LineComment(root_source, "--", "#endregion"))
+		table.insert(root_source.block.block, 1, block)
 	end
 	-- Transforming is depth-first.
 	-- So, if `node == root_source` then we have finish transforming everything and can check if onTick or httpReply is missing.
-	if node == source then
-		print_warn("TODO: Check if onTick or httpReply is missing.")
+	if node == root_source then
+		local block = root_source.block.block
+		if not root_source._has_onTick then
+			print_info("Missing onTick callback, one has been created for tracing.")
+			table.insert(block, 1, ASTNodes.assign(
+				block, nil,
+				ASTNodes.varlist(block, ASTNodes.index(block, nil, ASTNodes.name(block, "onTick"))),
+				ASTNodes.expressionlist(block, ASTNodes["function"](block, ASTNodes.funcbody(block,
+					ASTNodes.parlist(block, ASTNodes.var_args(block)),
+					ASTNodes.block(block, self:_generate_onTick_code(block))
+				)))
+			))
+			root_source._has_onTick = true
+		end
+		if not root_source._has_httpReply then
+			print_info("Missing httpReply callback, one has been created for tracing.")
+			table.insert(block, 1, ASTNodes.assign(
+				block, nil,
+				ASTNodes.varlist(block, ASTNodes.index(block, nil, ASTNodes.name(block, "httpReply"))),
+				ASTNodes.expressionlist(block, ASTNodes["function"](block, ASTNodes.funcbody(block,
+					ASTNodes.parlist(block, ASTNodes.var_args(block)),
+					ASTNodes.block(block, self:_generate_httpReply_code(block))
+				)))
+			))
+			root_source._has_httpReply = true
+		end
 	end
 	return node
 end
@@ -148,7 +171,7 @@ function TransformerDefs:_generate_httpReply_code(node)
 				node, nil, ASTNodes.name(node, SPECIAL_NAME),
 				ASTNodes.index(
 					node, ".", ASTNodes.name(node, "_handleHttp"),
-					ASTNodes.call(node, node.args)
+					ASTNodes.call(node, node.args or ASTNodes.var_args(node))
 				)
 			),
 			ASTNodes.block(node, ASTNodes["return"](node, ASTNodes.expressionlist(node)))
@@ -157,10 +180,12 @@ end
 
 ---@param node ASTNode
 function TransformerDefs:funcbody(node)
-	---@type ASTNodeSource?
-	local root_source_node = self:_get_root_source(node)
-	assert(root_source_node ~= nil, "root_source_node ~= nil")
-	local start_line, start_column = relabel.calcline(root_source_node.source, node.start)
+	---@type ASTNodeSource
+	local root_source = assert(self:_get_root_source(node), "root_source ~= nil")
+
+	---@type ASTNodeSource
+	local source = assert(self:find_parent_of_type(node, "source"), "parent source node ~= nil")
+	local start_line, start_column = source:calcline(node.start)
 
 	---@type ASTNode?
 	local prepend_node
@@ -173,8 +198,10 @@ function TransformerDefs:funcbody(node)
 		elseif parent_node.scope ~= "local" then
 			if name == "onTick" then
 				prepend_node = self:_generate_onTick_code(node)
+				root_source._has_onTick = true
 			elseif name == "httpReply" then
 				prepend_node = self:_generate_httpReply_code(node)
+				root_source._has_httpReply = true
 			end
 		end
 	elseif parent_node.type == "function" then
@@ -189,8 +216,10 @@ function TransformerDefs:funcbody(node)
 					if parent_assign_node.scope ~= "local" then
 						if name == "onTick" then
 							prepend_node = self:_generate_onTick_code(node)
+							root_source._has_onTick = true
 						elseif name == "httpReply" then
 							prepend_node = self:_generate_httpReply_code(node)
+							root_source._has_httpReply = true
 						end
 					end
 				end
