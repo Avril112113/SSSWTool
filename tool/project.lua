@@ -228,7 +228,7 @@ function Project:build()
 	do
 		-- Add comment at beginning of file to disable all diagnostics of the file.
 		-- This isn't required but is nice to have.
-		table.insert(ast.block.block, 1, ASTHelpers.Nodes.LineComment(ast.block.block[1], "---", "@diagnostic disable"))
+		table.insert(ast.block.block, 1, ASTHelpers.Nodes.LineComment(ast.block.block, "---", "@diagnostic disable"))
 	end
 
 	local script_out
