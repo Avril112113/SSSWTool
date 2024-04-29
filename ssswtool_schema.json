@@ -1,0 +1,27 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://raw.githubusercontent.com/Avril112113/SSSWTool/main/ssswtool_schema.json",
+	"title": "SSSWTool config",
+	"description": "SSSWTool config schema",
+	"type": ["object", "array"],
+	"properties": {"$ref": "#/$defs/SSSWToolConfig"},
+	"items": {"anyOf": [{"$ref": "#/$defs/SSSWToolConfig"}, {"type": "string"}]},
+	"$defs": {
+		"SSSWToolConfig": {
+			"type": "object",
+			"properties": {
+				"name": {"type": "string"},
+				"entrypoint": {"type": "string"},
+				"src": {"type": ["string", "array"], "items": { "type": "string" }},
+				"out": {"type": ["string", "array"], "items": { "type": "string" }},
+				"transformers": {
+					"type": "object",
+					"properties": {
+						"combiner": { "type": "boolean" },
+						"tracing": { "type": "boolean" }
+					}
+				}
+			}
+		}
+	}
+}

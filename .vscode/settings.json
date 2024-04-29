@@ -22,5 +22,11 @@
 		"release",
 		"test_addon",
 		"IMAI"
+	],
+	"json.schemas": [
+		{
+			"fileMatch": ["ssswtool.json"],
+			"url": "./ssswtool_schema.json"
+		}
 	]
 }
