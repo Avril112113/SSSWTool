@@ -112,10 +112,10 @@ function TransformerDefs:source(node)
 	-- Transforming is depth-first.
 	-- So, if `node == root_source` then we have finish transforming everything and can check if onTick or httpReply is missing.
 	if node == root_source then
-		local block = root_source.block.block
+		local block = self._SWAddon_TracingBlock
 		if not root_source._has_onTick then
 			print_info("Missing onTick callback, one has been created for tracing.")
-			table.insert(block, 1, ASTNodes.assign(
+			table.insert(block, ASTNodes.assign(
 				block, nil,
 				ASTNodes.varlist(block, ASTNodes.index(block, nil, ASTNodes.name(block, "onTick"))),
 				ASTNodes.expressionlist(block, ASTNodes["function"](block, ASTNodes.funcbody(block,
@@ -127,7 +127,7 @@ function TransformerDefs:source(node)
 		end
 		if not root_source._has_httpReply then
 			print_info("Missing httpReply callback, one has been created for tracing.")
-			table.insert(block, 1, ASTNodes.assign(
+			table.insert(block, ASTNodes.assign(
 				block, nil,
 				ASTNodes.varlist(block, ASTNodes.index(block, nil, ASTNodes.name(block, "httpReply"))),
 				ASTNodes.expressionlist(block, ASTNodes["function"](block, ASTNodes.funcbody(block,
