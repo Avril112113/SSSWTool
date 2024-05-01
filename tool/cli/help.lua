@@ -1,15 +1,7 @@
-require "tool.cli_print"
-
-local MultiProject = require "tool.multi_project"
-
-
-local CLI = {}
-
-
----@alias SSWTool.CLI.Action {help:string?,usage:string?,handler:fun(args:string[],pos:integer):integer?}
----@type table<string,SSWTool.CLI.Action>
-CLI.actions = {
-	help = {
+---@param CLI SSWTool.CLI
+return function(CLI)
+	---@type SSWTool.CLI.Action
+	return {
 		usage = "[action]",
 		---@param args string[]
 		---@param pos integer
@@ -51,41 +43,5 @@ CLI.actions = {
 				end
 			end
 		end,
-	},
-	build = {
-		help = "Build a SW addon project.",
-		usage = "[path=./]",
-		---@param args string[]
-		---@param pos integer
-		handler = function(args, pos)
-			local addon_dir = args[pos] or "./"
-			pos = pos + 1
-			local multi_project, err = MultiProject.new(addon_dir .. "/ssswtool.json")
-			if not multi_project or err then
-				print_error(err or "FAIL project ~= nil")
-				return -1
-			end
-			multi_project:build()
-			-- TODO: Check for any projects that failed to build and return -1 if so.
-			return 0
-		end,
-	},
-}
-
-
----@param args string[]
-function CLI.process(args)
-	if #args <= 0 then
-		CLI.actions.help.handler(args, 1)
-		return -1
-	end
-	local action = CLI.actions[args[1]]
-	if action == nil then
-		print(("Invalid action '%s'.\nTry 'help' for available actions."):format(args[1]))
-		return -1
-	end
-	return action.handler(args, 2)
+	}
 end
-
-
-return CLI

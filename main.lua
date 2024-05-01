@@ -2,15 +2,16 @@ local args = assert(arg)
 
 local MAIN_PATH = assert(args[0])  -- Path to this file
 local TOOL_PATH = MAIN_PATH:find("[\\/]") and MAIN_PATH:gsub("[\\/][^\\/]*$", "") or "."
-local SELENSCRIPT_PATH = "SelenScript"
+local SELENSCRIPT_PATH_LOCAL = "SelenScript"
 do
 	-- Directory existence check, works on Windows and Linux
 	local f, _, code = io.open("../SelenScript", "r")
 	if code == 13 or (f and select(3, f:read()) == 21) then
 		if f then f:close() end
-		SELENSCRIPT_PATH = "../SelenScript"
+		SELENSCRIPT_PATH_LOCAL = "../SelenScript"
 	end
 end
+local SELENSCRIPT_PATH = TOOL_PATH .. "/" .. SELENSCRIPT_PATH_LOCAL
 
 jit = jit or select(2, pcall(require, "jit"))
 if not jit then
