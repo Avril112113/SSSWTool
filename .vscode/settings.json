@@ -1,9 +1,11 @@
 {
 	"Lua.runtime.version": "LuaJIT",
 	"Lua.workspace.library": [
-        "c:/Users/avril/.vscode/extensions/nameouschangey.lifeboatapi-0.0.33/assets/lua/Common/",
-        "c:/Users/avril/.vscode/extensions/nameouschangey.lifeboatapi-0.0.33/assets/lua/Addon/",
+		"c:/Users/avril/.vscode/extensions/nameouschangey.lifeboatapi-0.0.33/assets/lua/Common/",
+		"c:/Users/avril/.vscode/extensions/nameouschangey.lifeboatapi-0.0.33/assets/lua/Addon/",
 		"C:/Users/avril/AppData/Roaming/Code/User/globalStorage/sumneko.lua/addonManager/addons/luafilesystem/module/library",
+		"C:/Users/avril/AppData/Roaming/Code/User/globalStorage/sumneko.lua/addonManager/addons/luasocket/module/library",
+		"C:/Projects/Lua/Stormworks/AvrilsSWTools/AVCmds",
 		"../SelenScript",
 		"../SelenScript/libs"
 	],
@@ -12,16 +14,11 @@
 	"Lua.runtime.path": [
 		"?.lua",
 		"?/init.lua",
-		"../SelenScript/libs/?.lua",
-		"../SelenScript/libs/?/init.lua",
-		"../SelenScript/?.lua",
-		"../SelenScript/?/init.lua"
+		"typing/?.lua"
 	],
 	"Lua.workspace.ignoreDir": [
 		".vscode",
-		"release",
-		"test_addon",
-		"IMAI"
+		"release"
 	],
 	"json.schemas": [
 		{

@@ -11,6 +11,7 @@ local Project = require "tool.project"
 ---@field projects (SSSWTool.Project|SSSWTool.MultiProject)[]
 ---@field config SSSWTool.Config
 local MultiPorject = {}
+MultiPorject.__name = "MultiPorject"
 MultiPorject.__index = MultiPorject
 
 
@@ -41,6 +42,13 @@ function MultiPorject.new(config_path)
 		self:createProject(self.config.data, config_path)
 	end
 	return self
+end
+
+function MultiPorject:__tostring()
+	if self == MultiPorject then
+		return ("<%s>"):format(MultiPorject.__name)
+	end
+	return ("<%s %p '%s'>"):format(MultiPorject.__name, self, self.config_path)
 end
 
 ---@param project_config SSSWTool.Project.Config

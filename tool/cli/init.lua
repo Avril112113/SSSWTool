@@ -9,6 +9,7 @@ local CLI = {}
 CLI.actions = {
 	help = require("tool.cli.help")(CLI),
 	build = require("tool.cli.build")(CLI),
+	watch = require("tool.cli.watch")(CLI),
 }
 
 ---@param args string[]

@@ -29,12 +29,17 @@ end
 function Config:read(path)
 	local f, msg, code = io.open(path, "r")
 	if not f then
+		-- If file not found, then we just keep the config we have (should be default)
 		if code == 2 then
 			return true
 		end
 		return false, msg, code
 	end
-	local src = f:read("*a")
+	local src, err = f:read("*a")
+	f:close()
+	if err then
+		return false, ("Failed to read config '%s'\n%s"):format(path, err)
+	end
 	local ok, data = pcall(json.decode, src)
 	if not ok then
 		return false, ("Failed to parse config '%s'\n%s"):format(path, data:gsub(".-:.-: ", ""))
@@ -48,16 +53,6 @@ function Config:read(path)
 	self.data = data
 	return true
 end
-
--- ---@param path string
--- function Config:write(path)
--- 	local f, msg, code = io.open(path, "w")
--- 	if not f then
--- 		return false, msg, code
--- 	end
--- 	error("TODO")
--- 	return true
--- end
 
 
 return Config

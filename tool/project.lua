@@ -35,6 +35,7 @@ end
 ---@field multiproject SSSWTool.MultiProject
 ---@field config SSSWTool.Project.Config
 local Project = {}
+Project.__name = "Project"
 Project.__index = Project
 
 Project.TRANSFORMERS = {
@@ -81,7 +82,7 @@ end
 ---@param infer_name boolean
 function Project.getDefaultConfig(multiproject, infer_name)
 	return {
-		name = infer_name and multiproject.project_path:match("/(.-)$") or nil,
+		name = infer_name and multiproject.project_path:match("[\\/](.-)$") or nil,
 		src = ".",
 		out = nil,
 		transformers = Project.DEFAULT_TRANSFORMERS,
@@ -98,6 +99,13 @@ function Project.new(multiproject, config)
 	if not ok then return nil, err end
 	self.config = config
 	return self
+end
+
+function Project:__tostring()
+	if self == Project then
+		return ("<%s>"):format(Project.__name)
+	end
+	return ("<%s %p '%s'>"):format(Project.__name, self, self.config and self.config.name)
 end
 
 ---@param path string # Project local path to file.
