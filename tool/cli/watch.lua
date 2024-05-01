@@ -25,7 +25,7 @@ end
 return function(CLI)
 	---@type SSWTool.CLI.Action
 	return {
-		help = "Build a SW addon project.",
+		help = "Automatically build a SW addon project upon detected changes.",
 		usage = "[path=./]",
 		---@param args string[]
 		---@param pos integer
