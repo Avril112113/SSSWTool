@@ -9,6 +9,12 @@
 local SS_SW_DBG = {}
 ---@type integer[]
 SS_SW_DBG._stack = {}
+SS_SW_DBG._server = {
+	announce = server.announce,
+	getAddonData = server.getAddonData,
+	getAddonIndex = server.getAddonIndex,
+	httpGet = server.httpGet,
+}
 
 function SS_SW_DBG._trace_enter(id)
 	table.insert(SS_SW_DBG._stack, #SS_SW_DBG._stack+1, id)
@@ -19,7 +25,7 @@ function SS_SW_DBG._trace_exit(id)
 	if removed_id ~= id then
 		local msg = ("Attempt to exit trace '%s' but found '%s' instead."):format(id, removed_id)
 		debug.log("[SW] [ERROR] " .. msg)
-		server.announce(server.getAddonData((server.getAddonIndex())).name, msg, -1)
+		SS_SW_DBG._server.announce(SS_SW_DBG._server.getAddonData((SS_SW_DBG._server.getAddonIndex())).name, msg, -1)
 	end
 end
 
@@ -30,8 +36,28 @@ function SS_SW_DBG._trace_func(id, f, ...)
 	return table.unpack(results)
 end
 
+---@param tbl table
+---@param path string
+function SS_SW_DBG._hook_tbl(tbl, path)
+	for i, v in pairs(tbl) do
+		if type(i) == "string" and type(v) == "function" then
+			local nindex = SS_SW_DBG._nindex
+			SS_SW_DBG._info[nindex] = {
+				["name"] = path .. "." .. i,
+				["line"] = 1,
+				["column"] = 1,
+				["file"] = "{_ENV}",
+			}
+			tbl[i] = function(...)
+				return SS_SW_DBG._trace_func(nindex, v, ...)
+			end
+			SS_SW_DBG._nindex = SS_SW_DBG._nindex - 1
+		end
+	end
+end
+
 function SS_SW_DBG._sendCheckStackHttp()
-	server.httpGet(0, "SSSWTool-tracing-check_stack")
+	SS_SW_DBG._server.httpGet(0, "SSSWTool-tracing-check_stack")
 end
 
 function SS_SW_DBG._handleHttp(port, request)
@@ -69,7 +95,7 @@ function SS_SW_DBG.check_stack(expected_depth)
 			table.remove(SS_SW_DBG._stack, i)
 		end
 		for _, s in ipairs(lines) do debug.log("[SW] [ERROR] " .. s) end
-		server.announce(server.getAddonData((server.getAddonIndex())).name, table.concat(lines, "\n"), -1)
+		SS_SW_DBG._server.announce(SS_SW_DBG._server.getAddonData((SS_SW_DBG._server.getAddonIndex())).name, table.concat(lines, "\n"), -1)
 		return true
 	end
 	return false
@@ -80,5 +106,9 @@ function SS_SW_DBG.get_current_info()
 	return SS_SW_DBG._info[SS_SW_DBG._stack[#SS_SW_DBG._stack]]
 end
 
+-- Negative index, used for std methods in _ENV
+SS_SW_DBG._nindex = -1
 ---@type SS_SW_DBG.INFO[]
 SS_SW_DBG._info = {}
+
+SS_SW_DBG._hook_tbl(server, "server")

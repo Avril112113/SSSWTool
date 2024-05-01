@@ -240,7 +240,7 @@ function TransformerDefs:funcbody(node)
 			local_file_path = AVPath.relative(local_source_node.file, self.multiproject.project_path)
 		end
 	end
-	self:_add_trace_info(node, name, start_line, start_column, local_file_path)
+	self:_add_trace_info(node, name, start_line, start_column, local_file_path:gsub("<", "{"):gsub(">", "}"))
 
 	local newblock = ASTNodes.block(node,
 		ASTNodes["return"](node, ASTNodes.expressionlist(
