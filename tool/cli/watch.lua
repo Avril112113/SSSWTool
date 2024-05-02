@@ -72,26 +72,55 @@ return function(CLI)
 				return multi_project, err
 			end
 
+			local function create_watcher(multi_project)
+				local watcher = LuaNotify.new()
+				watcher:whitelist_glob("*.lua")
+				watcher:whitelist_glob("*.json")
+				watcher:blacklist_glob("*/_build/*")
+				for _, path in pairs(get_watch_paths(multi_project)) do
+					watcher:watch(path, true)
+				end
+				return watcher
+			end
+
 			local addon_dir = args[pos] or "./"
 			pos = pos + 1
 			local multi_project = build(addon_dir)
 			if not multi_project then return -1 end
 			print("\n~ Beginning watch.")
 			local ok, err = xpcall(function()
+				local watcher, checking_old_watcher = create_watcher(multi_project), false
+				local loop_detect = 0
 				while true do
-					local watcher = LuaNotify.new()
-					watcher:whitelist_glob("*.lua")
-					watcher:whitelist_glob("*.json")
-					watcher:blacklist_glob("*/_build/*")
-					for _, path in pairs(get_watch_paths(multi_project)) do
-						watcher:watch(path, true)
+					if loop_detect >= 3 then
+						print("\n~ Potential watch loop detected, skipping. (can probably ignore this message)")
+						watcher = create_watcher(multi_project)
 					end
 					while true do
 						local event = watcher:poll()
-						if event then break end
+						if event and (event.type == "create" or event.type == "modify" or event.type == "remove") then
+							break
+						elseif not event then
+							if checking_old_watcher then
+								watcher = create_watcher(multi_project)
+								checking_old_watcher = false
+							else
+								sleep(100/1000)
+							end
+						end
 					end
 					sleep(100/1000)
-					print("\n~ Detected file change, building...")
+					-- Clear out the watcher so we can detect changes during the build.
+					while watcher:poll() do end
+					if checking_old_watcher then
+						print("\n~ Detected file change during previous build, building...")
+						loop_detect = loop_detect + 1
+					else
+						print("\n~ Detected file change, building...")
+						loop_detect = 0
+					end
+					checking_old_watcher = true
+
 					local new_multi_project = build(addon_dir)
 					if new_multi_project then
 						multi_project = new_multi_project
