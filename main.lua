@@ -5,7 +5,7 @@ local TOOL_PATH = MAIN_PATH:find("[\\/]") and MAIN_PATH:gsub("[\\/][^\\/]*$", ""
 local SELENSCRIPT_PATH_LOCAL = "SelenScript"
 do
 	-- Directory existence check, works on Windows and Linux
-	local f, _, code = io.open("../SelenScript", "r")
+	local f, _, code = io.open(TOOL_PATH .. "/../SelenScript", "r")
 	if code == 13 or (f and select(3, f:read()) == 21) then
 		if f then f:close() end
 		SELENSCRIPT_PATH_LOCAL = "../SelenScript"
