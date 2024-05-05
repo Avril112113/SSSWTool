@@ -12,6 +12,7 @@ The following is what this tool provides:
 - Specify 1 or more output paths to automatically update addon's script.
 - TODO: Custom build actions.
 - TODO: vscode task template.
+- TODO: Additional configurable options (changing emitter config).
 
 Note that Linux is not supported properly yet, but should be in the future.  
 MacOS will not be officially supported, but if you have any issues feel free to make an issue on this repo.  
@@ -26,7 +27,10 @@ Run `ssswtool.bat` either directly or just `ssswtool` if it's on your PATH.
 The file `script.lua` is the default entrypoint, any files `require()` from there will be included into the output.  
 Build with `ssswtool build ./`.  
 The default output directory is `<CWD_OR_CONFIG_DIR>/_build/script.lua`.  
-You may create a `ssswtool.json` to customize the build process, it is high recommended to create this, see [below on how to set it up](#json-config-format).
+You may create a `ssswtool.json` to customize the build process, it is high recommended to create this, see [below on how to set it up](#json-config-format).  
+
+You may replace `build` with `watch`, which will build, then upon any detected changes re-build your addon automatically.  
+It will detect changes even during a build (build loops will be detected and stopped).  
 
 ## JSON Config format
 This section describes the format of `ssswtool.json` and any referenced configs by it.  
