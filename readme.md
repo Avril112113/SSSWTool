@@ -80,5 +80,9 @@ Multi-Project and config reference example
 ```
 
 **Pre-Built Binaries:**  
-The releases come with `luajit` pre-built for windows x64, you can delete the files and it'll use your system version instead, if available.  
-SelenScript also comes with pre-built libraries for `lfs` and `lpeglabel` in `./SelenScript/libs` for windows x64.  
+Releases contain [`luajit`](https://luajit.org/) pre-built for windows x64 (deleting it will use system version instead).  
+
+The following can be found in `SelenScript/libs`:  
+\- [`lfs`/`luafilesystem`](https://luarocks.org/modules/hisham/luafilesystem)  
+\- [`lpeglabel`](https://luarocks.org/modules/sergio-medeiros/lpeglabel)  
+\- [`luanotify`](https://github.com/Avril112113/luanotify)  
