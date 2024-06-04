@@ -21,6 +21,7 @@ end
 ---@field multiproject SSSWTool.MultiProject
 ---@field project SSSWTool.Project
 ---@field parser Parser
+---@field config any
 
 
 ---@class SSSWTool.Project.Config
@@ -220,6 +221,7 @@ function Project:build()
 				multiproject = self.multiproject,
 				project = self,
 				parser = parser,
+				config = self.config.transformers[transformer_name],
 			})
 			if #errors > 0 then
 				print_error("-- Transformer Errors: " .. #errors .. " --")

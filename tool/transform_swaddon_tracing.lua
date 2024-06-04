@@ -55,6 +55,16 @@ function TransformerDefs:_ensure_tracingblock(node)
 		local block = self._SWAddon_TracingBlock
 		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#region SSSWTool-Tracing-src"))
 		table.insert(block, #block+1, ast)
+		table.insert(block, #block+1, ASTNodes.assign(
+			node, nil,
+			ASTNodes.varlist(node, ASTNodes.index(
+				node, nil, ASTNodes.name(node, SPECIAL_NAME),
+				ASTNodes.index(
+					node, ".", ASTNodes.name(node, "level")
+				)
+			)),
+			ASTNodes.expressionlist(node, ASTNodes.string(node, self.config == "full" and "full" or "simple"))
+		))
 		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#endregion"))
 		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#region SSSWTool-Tracing-info"))
 		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#endregion"))
@@ -170,6 +180,11 @@ end
 
 ---@param node ASTNode
 function TransformerDefs:funcbody(node)
+	if node._is_traced then
+		return node
+	end
+	node._is_traced = true
+
 	---@type ASTNodeSource
 	local root_source = assert(self:_get_root_source(node), "root_source ~= nil")
 
@@ -259,6 +274,84 @@ function TransformerDefs:funcbody(node)
 		ASTNodes.varlist(node, ASTNodes.var_args(node)),
 		newblock
 	)
+end
+
+local WHITELIST_STMT_TYPES = {
+	["assign"]=true,
+	["index"]=true,
+}
+---@param node ASTNode
+function TransformerDefs:block(node)
+	if self.config ~= "full" then
+		return node
+	end
+	if node._is_traced then
+		return node
+	end
+	node._is_traced = true
+
+	if self:_get_root_source(node).block.block == node then
+		return node
+	end
+
+	---@type ASTNodeSource
+	local source = assert(self:find_parent_of_type(node, "source"), "parent source node ~= nil")
+
+	for i=#node,1,-1 do
+		local child = node[i]
+		if not WHITELIST_STMT_TYPES[child.type] then
+			goto continue
+		end
+		local start_line, start_column = source:calcline(child.start)
+		local local_file_path = "<UNKNOWN>"
+		if source.file then
+			if source.file:find("^<SSSWTOOL>[\\/]") then
+				local_file_path = AVPath.norm(source.file)
+			else
+				local_file_path = AVPath.relative(source.file, self.multiproject.project_path)
+			end
+		end
+		self._swdbg_index = self._swdbg_index and self._swdbg_index + 1 or 1
+		local name = "stmt_"..child.type
+		if child.type == "index" then
+			name = emitter:generate(child)
+			if name:find("\n") then
+				name = name:match("(.-)\n")
+			end
+		elseif child.type == "assign" then
+			local cpy = Utils.shallowcopy(child)
+			cpy.values = ASTNodes.expressionlist(child)
+			name = emitter:generate(cpy) .. " ="
+		end
+		self:_add_trace_info(node, ("`%s`"):format(name), start_line, start_column, local_file_path:gsub("<", "{"):gsub(">", "}"))
+		table.insert(node, i+1, ASTNodes.index(
+			node, nil, ASTNodes.name(node, SPECIAL_NAME),
+			ASTNodes.index(
+				node, ".", ASTNodes.name(node, "_trace_exit"),
+				ASTNodes.call(
+					node, ASTNodes.expressionlist(
+						node,
+						ASTNodes.numeral(node, tostring(self._swdbg_index))
+					)
+				)
+			)
+		))
+		table.insert(node, i, ASTNodes.index(
+			node, nil, ASTNodes.name(node, SPECIAL_NAME),
+			ASTNodes.index(
+				node, ".", ASTNodes.name(node, "_trace_enter"),
+				ASTNodes.call(
+					node, ASTNodes.expressionlist(
+						node,
+						ASTNodes.numeral(node, tostring(self._swdbg_index))
+					)
+				)
+			)
+		))
+		::continue::
+	end
+
+	return node
 end
 
 

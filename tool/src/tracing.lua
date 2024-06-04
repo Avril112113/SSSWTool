@@ -47,8 +47,8 @@ function SS_SW_DBG._hook_tbl(tbl, path)
 			local nindex = SS_SW_DBG._nindex
 			SS_SW_DBG._info[nindex] = {
 				["name"] = path .. "." .. i,
-				["line"] = 1,
-				["column"] = 1,
+				["line"] = -1,
+				["column"] = -1,
 				["file"] = "{_ENV}",
 			}
 			tbl[i] = function(...)
@@ -83,7 +83,11 @@ function SS_SW_DBG.stacktrace(depth)
 			prev_file = trace.file
 			table.insert(lines, ("   '%s'"):format(trace.file))
 		end
-		table.insert(lines, ("%s %s @ %s:%s"):format(i, trace.name, trace.line, trace.column))
+		if trace.line == -1 and trace.column == -1 then
+			table.insert(lines, ("%s %s"):format(i, trace.name))
+		else
+			table.insert(lines, ("%s %s @ %s:%s"):format(i, trace.name, trace.line, trace.column))
+		end
 	end
 	return lines
 end

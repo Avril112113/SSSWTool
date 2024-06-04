@@ -61,6 +61,7 @@ Basic usage example (values represent default)
 		// generate stack traces with correct file names and line numbers in-game.
 		// This should be `false` for releases
 		// as it affects runtime performance and will greatly impact the output size.
+		// Possible options: false, "simple" and "full"
 		"tracing": false
 	}
 }
