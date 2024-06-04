@@ -215,6 +215,7 @@ function Project:build()
 	for _, transformer_name in ipairs(Project.TRANSFORM_ORDER) do
 		if self.config.transformers[transformer_name] then
 			print_info(("Transforming AST with '%s'"):format(transformer_name))
+			local transform_time_start = os.clock()
 			local TransformerDefs = assert(Project.TRANSFORMERS[transformer_name], ("Missing transformer"):format(transformer_name))
 			local transformer = Transformer.new(TransformerDefs)
 			local errors = transformer:transform(ast, {
@@ -230,6 +231,7 @@ function Project:build()
 				end
 				return false
 			end
+			print_info(("Finished '%s' in %ss."):format(transformer_name, os.clock()-transform_time_start))
 		-- else
 		-- 	print_info(("Transforming AST skipped '%s' (disabled)"):format(transformer_name))
 		end
@@ -244,6 +246,7 @@ function Project:build()
 	local script_out
 	do
 		print_info("Emitting Lua")
+		local emitter_time_start = os.clock()
 		---@type LuaEmitterConfig
 		local emitter_config = {
 			luacats_source=true,
@@ -258,6 +261,7 @@ function Project:build()
 				return ("../%s"):format(AVPath.relative(path, self.multiproject.project_path))
 			end
 		})
+		print_info(("Finished emitting in %ss."):format(os.clock()-emitter_time_start))
 		print_info("Writing to '_build'")
 		lfs.mkdir(self.multiproject.project_path .. "/_build")
 		Utils.writeFile(self.multiproject.project_path .. "/_build/" .. self.config.name .. ".lua", script_out)
@@ -294,8 +298,7 @@ function Project:build()
 		end
 	end
 
-	local time_finish = os.clock()
-	print_info(("Finished build in %ss."):format(time_finish-time_start))
+	print_info(("Finished build in %ss."):format(os.clock()-time_start))
 	return true
 end
 
