@@ -263,8 +263,9 @@ function Project:build()
 		})
 		print_info(("Finished emitting in %ss."):format(os.clock()-emitter_time_start))
 		print_info("Writing to '_build'")
-		lfs.mkdir(self.multiproject.project_path .. "/_build")
-		Utils.writeFile(self.multiproject.project_path .. "/_build/" .. self.config.name .. ".lua", script_out)
+		local underscore_build_path = AVPath.join{self.multiproject.project_path, "_build"}
+		lfs.mkdir(underscore_build_path)
+		Utils.writeFile(AVPath.join{underscore_build_path, self.config.name .. ".lua"}, script_out)
 	end
 
 	if self.config.out ~= nil then
