@@ -83,9 +83,9 @@ end
 ---@param infer_name boolean
 function Project.getDefaultConfig(multiproject, infer_name)
 	return {
-		name = infer_name and multiproject.project_path:match("[\\/](.-)$") or nil,
+		name = infer_name and AVPath.name(multiproject.project_path) or nil,
 		src = ".",
-		out = nil,
+		entrypoint = "script.lua",
 		transformers = Project.DEFAULT_TRANSFORMERS,
 	}
 end
