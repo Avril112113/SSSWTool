@@ -168,6 +168,8 @@ function Project:findModFile(modpath, path)
 end
 
 function Project:build()
+	local time_start = os.clock()
+
 	local entry_file_name = self.config.entrypoint or "script.lua"
 	local entry_file_path = self:findSrcFile(entry_file_name)
 	if not entry_file_path then
@@ -176,7 +178,8 @@ function Project:build()
 	end
 	local entry_file_src = Utils.readFile(entry_file_path)
 
-	local time_start = os.clock()
+	local underscore_build_path = AVPath.join{self.multiproject.project_path, "_build"}
+	lfs.mkdir(underscore_build_path)
 
 	local parser
 	do
@@ -263,8 +266,6 @@ function Project:build()
 		})
 		print_info(("Finished emitting in %.3fs."):format(os.clock()-emitter_time_start))
 		print_info("Writing to '_build'")
-		local underscore_build_path = AVPath.join{self.multiproject.project_path, "_build"}
-		lfs.mkdir(underscore_build_path)
 		Utils.writeFile(AVPath.join{underscore_build_path, self.config.name .. ".lua"}, script_out)
 	end
 
