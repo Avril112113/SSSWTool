@@ -1,8 +1,11 @@
 local modpath = ...
 
 local AVPath = require "avpath"
+local lfs = require "lfs"
+local MessagePack = require "MessagePack"
 
 local Utils = require "SelenScript.utils"
+local Parser = require "SelenScript.parser.parser"
 local ASTHelpers = require "SelenScript.transformer.ast_helpers"
 local ASTNodes = ASTHelpers.Nodes
 local AST = require "SelenScript.parser.ast"  -- Used for debugging.
@@ -100,15 +103,41 @@ function TransformerDefs:index(node)
 		else
 			filepath = AVPath.norm(filepath)
 			if self.required_files[filepath] == nil then
-				print_info(("Parsing '%s'"):format(filepath_local))
-				local ast, errors, comments = self.parser:parse(Utils.readFile(filepath), filepath)
-				if #errors > 0 then
-					print_error("-- Parse Errors: " .. #errors .. " --")
-					for _, v in ipairs(errors) do
-						print_error(v.id .. ": " .. v.msg)
+				local cache_dir = AVPath.join{self.multiproject.project_path, "_build", "cache"}
+				lfs.mkdir(cache_dir)
+				local cache_name = filepath:gsub("_", "__"):gsub(":", "_"):gsub("[\\/]", "_") .. ".msgpack"
+				local cache_path = AVPath.join{cache_dir, cache_name}
+				---@type ASTNodeSource
+				local ast
+				if AVPath.exists(cache_path) and lfs.attributes(filepath, "modification") < lfs.attributes(cache_path, "modification") then
+					print_info(("Cache read '%s'"):format(filepath_local))
+					local packed = Utils.readFile(cache_path, true)
+					local ok, unpacked = pcall(MessagePack.unpack, packed)
+					if ok then
+						ast = unpacked
+						ast.calcline = Parser._source_calcline
+					else
+						print_warn("Failed to load cached AST: " .. tostring(unpacked))
+						pcall(os.remove, cache_path)
 					end
-					self.required_files[filepath] = false
-					return node
+				end
+				if ast == nil then
+					print_info(("Parsing '%s'"):format(filepath_local))
+					local errors, comments
+					ast, errors, comments = self.parser:parse(Utils.readFile(filepath), filepath)
+					if #errors > 0 then
+						print_error("-- Parse Errors: " .. #errors .. " --")
+						for _, v in ipairs(errors) do
+							print_error(v.id .. ": " .. v.msg)
+						end
+						self.required_files[filepath] = false
+						return node
+					end
+					local cpy = Utils.shallowcopy(ast)
+					cpy._avcalcline = nil
+					cpy.calcline = nil
+					local packed = MessagePack.pack(cpy)
+					Utils.writeFile(cache_path, packed, true)
 				end
 				self:_add_require(
 					call_node,
