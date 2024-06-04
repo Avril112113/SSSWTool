@@ -231,7 +231,7 @@ function Project:build()
 				end
 				return false
 			end
-			print_info(("Finished '%s' in %ss."):format(transformer_name, os.clock()-transform_time_start))
+			print_info(("Finished '%s' in %.3fs."):format(transformer_name, os.clock()-transform_time_start))
 		-- else
 		-- 	print_info(("Transforming AST skipped '%s' (disabled)"):format(transformer_name))
 		end
@@ -261,7 +261,7 @@ function Project:build()
 				return ("../%s"):format(AVPath.relative(path, self.multiproject.project_path))
 			end
 		})
-		print_info(("Finished emitting in %ss."):format(os.clock()-emitter_time_start))
+		print_info(("Finished emitting in %.3fs."):format(os.clock()-emitter_time_start))
 		print_info("Writing to '_build'")
 		local underscore_build_path = AVPath.join{self.multiproject.project_path, "_build"}
 		lfs.mkdir(underscore_build_path)
@@ -299,7 +299,7 @@ function Project:build()
 		end
 	end
 
-	print_info(("Finished build in %ss."):format(os.clock()-time_start))
+	print_info(("Finished build in %.3fs."):format(os.clock()-time_start))
 	return true
 end
 
