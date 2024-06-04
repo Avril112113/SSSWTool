@@ -10,6 +10,7 @@ CLI.actions = {
 	help = require("tool.cli.help")(CLI),
 	build = require("tool.cli.build")(CLI),
 	watch = require("tool.cli.watch")(CLI),
+	new = require("tool.cli.new")(CLI),
 }
 
 ---@param args string[]
