@@ -27,9 +27,27 @@ function onDestroy()
 end
 ]]
 
+local GITIGNORE = [[
+/_build/
+]]
+
+local VSCODE_SETTINGS = [[
+{
+	"Lua.runtime.version": "Lua 5.3",
+	"Lua.runtime.pathStrict": true,
+	"Lua.workspace.checkThirdParty": false,
+	"Lua.runtime.path": [
+		"?.lua",
+		"?/init.lua"
+	]
+}
+]]
+
 return function(name)
 	return {
 		["ssswtool.json"] = SSSWTOOL_JSON_FMT:format(name),
 		["script.lua"] = SCRIPT,
+		[".gitignore"] = GITIGNORE,
+		[".vscode/settings.json"] = VSCODE_SETTINGS,
 	}
 end
