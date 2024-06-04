@@ -7,7 +7,6 @@ SETLOCAL
 if exist "./release/" rmdir "./release/" /q /s
 mkdir "./release/"
 
-mkdir "./release/SSSWTool"
 copy "./main.lua" "./release/main.lua"
 copy "./ssswtool.bat" "./release/ssswtool.bat"
 xcopy "./tool" "./release/tool" /s /e /i
