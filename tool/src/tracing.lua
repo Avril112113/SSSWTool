@@ -15,6 +15,9 @@ SS_SW_DBG._server = {
 	getAddonIndex = server.getAddonIndex,
 	httpGet = server.httpGet,
 }
+---@type string[]
+SS_SW_DBG.expected_stack_onTick = {}
+SS_SW_DBG.expected_stack_httpReply = {}
 
 function SS_SW_DBG._trace_enter(id)
 	table.insert(SS_SW_DBG._stack, #SS_SW_DBG._stack+1, id)
@@ -62,7 +65,7 @@ end
 
 function SS_SW_DBG._handleHttp(port, request)
 	if port == 0 and request == "SSSWTool-tracing-check_stack" then
-		SS_SW_DBG.check_stack(0)
+		SS_SW_DBG.check_stack(SS_SW_DBG.expected_stack_httpReply)
 		return true
 	end
 	return false
@@ -85,17 +88,31 @@ function SS_SW_DBG.stacktrace(depth)
 	return lines
 end
 
----@param expected_depth integer
+---@param expected string[]
 ---@return boolean # true when stack was to be deeper than expected and was shortend with error been logged. 
-function SS_SW_DBG.check_stack(expected_depth)
-	if #SS_SW_DBG._stack > expected_depth then
-		local lines = SS_SW_DBG.stacktrace(#SS_SW_DBG._stack-expected_depth)
-		table.insert(lines, 1, "Detected unwound stacktrace:")
-		for i=#SS_SW_DBG._stack-expected_depth,1,-1 do
-			table.remove(SS_SW_DBG._stack, i)
+function SS_SW_DBG.check_stack(expected)
+	local expected_start = #expected == 0 and 0 or math.huge
+	for i=1,#SS_SW_DBG._stack do
+		local info = SS_SW_DBG._info[SS_SW_DBG._stack[i]]
+		if info.name == expected[1] then
+			expected_start = i
+		elseif info.name ~= expected[i-expected_start+1] then
+			expected_start = math.huge
 		end
+	end
+	if expected_start > 1 or #SS_SW_DBG._stack ~= #expected then
+		if expected_start == math.huge then
+			expected_start = #SS_SW_DBG._stack+1
+		end
+		local lines = SS_SW_DBG.stacktrace(expected_start-1)
+		table.insert(lines, 1, "Detected unwound stacktrace:")
 		for _, s in ipairs(lines) do debug.log("[SW] [ERROR] " .. s) end
 		SS_SW_DBG._server.announce(SS_SW_DBG._server.getAddonData((SS_SW_DBG._server.getAddonIndex())).name, table.concat(lines, "\n"), -1)
+		for i=expected_start-1,1,-1 do
+			if i > 0 then
+				table.remove(SS_SW_DBG._stack, i)
+			end
+		end
 		return true
 	end
 	return false

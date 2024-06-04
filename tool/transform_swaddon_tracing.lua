@@ -93,22 +93,7 @@ end
 ---@param node ASTNodeSource
 function TransformerDefs:source(node)
 	local root_source = assert(self:_get_root_source(node), "root_source_node ~= nil")
-	if not self._SWAddon_TracingBlock then
-		self._SWAddon_TracingBlock = ASTNodes.block(root_source)
-		local ast, errors, comments = self.parser:parse(Utils.readFile(TRACING_PREFIX_SRC_FILE), "<SSSWTOOL>/src/tracing.lua")
-		if #errors > 0 then
-			print_error("-- Parse Errors: " .. #errors .. " --")
-			for _, v in ipairs(errors) do
-				print_error(v.id .. ": " .. v.msg)
-			end
-			os.exit(-1)
-		end
-		local block = self._SWAddon_TracingBlock
-		table.insert(block, #block+1, ASTNodes.LineComment(root_source, "--", "#region SSSWTOOL-Tracing"))
-		table.insert(block, #block+1, ast)
-		table.insert(block, #block+1, ASTNodes.LineComment(root_source, "--", "#endregion"))
-		table.insert(root_source.block.block, 1, block)
-	end
+	self:_ensure_tracingblock(root_source)
 	-- Transforming is depth-first.
 	-- So, if `node == root_source` then we have finish transforming everything and can check if onTick or httpReply is missing.
 	if node == root_source then
@@ -149,7 +134,12 @@ function TransformerDefs:_generate_onTick_code(node)
 				node, nil, ASTNodes.name(node, SPECIAL_NAME),
 				ASTNodes.index(
 					node, ".", ASTNodes.name(node, "check_stack"),
-					ASTNodes.call(node, ASTNodes.expressionlist(node, ASTNodes.numeral(node, "0")))
+					ASTNodes.call(node, ASTNodes.expressionlist(node, ASTNodes.index(
+						node, nil, ASTNodes.name(node, SPECIAL_NAME),
+						ASTNodes.index(
+							node, ".", ASTNodes.name(node, "expected_stack_onTick")
+						)
+					)))
 				)
 			),
 			ASTNodes.index(
@@ -171,7 +161,7 @@ function TransformerDefs:_generate_httpReply_code(node)
 				node, nil, ASTNodes.name(node, SPECIAL_NAME),
 				ASTNodes.index(
 					node, ".", ASTNodes.name(node, "_handleHttp"),
-					ASTNodes.call(node, node.args or ASTNodes.var_args(node))
+					ASTNodes.call(node, ASTNodes.var_args(node))
 				)
 			),
 			ASTNodes.block(node, ASTNodes["return"](node, ASTNodes.expressionlist(node)))
