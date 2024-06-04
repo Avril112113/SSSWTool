@@ -29,8 +29,9 @@ Requires to be run in a cmd prompt.
 If `ssswtool` was added to your PATH, you can use `ssswtool` directly, otherwise replace it with the path to `ssswtool.bat`.  
 
 1. Create a new project with `ssswtool new addon ./some_addon_name`.  
-2. Edit `script.lua`, any files `require`d from here will be included into the output.  
-3. Build with `ssswtool build ./`.  
+2. Enter the new directory `cd ./some_addon_name`.  
+3. Edit `script.lua`, any files `require`d from here will be included into the output.  
+4. Build with `ssswtool build ./`.  
    The default output directory is `<PROJECT_DIR>/_build/script.lua`.  
    It will also output to `<SW_SAVEDATA>/data/missions/<PROJECT_NAME>/script.lua` if the directory exists.  
 You may edit `ssswtool.json` to customize the build process, [see below](#json-config-format).  
