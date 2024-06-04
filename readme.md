@@ -2,17 +2,19 @@
 A tool to build Stormworks addons with ease.  
 See below for what this tool can do thanks to utilizing [SelenScript](https://github.com/Avril112113/selenscript).  
 
-This project is currently **VERY work in progress**, it's lacking various features.  
-As it is right now, it's not considered a replacement for other tools until further testing and features has been finished.  
+This project is still work in progress, however it is usable and worth giving a try.  
+There are many features still to be added, but already provides more than alternate options.  
 
-The following is what this tool provides:
-- Combining multiple files into one.
-- Optional tracing which provides full stack traces at runtime with source file, line and column info.
-- Single and Multi project config files.
-- Specify 1 or more output paths to automatically update addon's script.
-- TODO: Custom build actions.
-- TODO: vscode task template.
-- TODO: Additional configurable options (changing emitter config).
+Currently, only addon Lua is supported, it is planned to support vehicle Lua in the future.  
+
+The following is what this tool provides:  
+- Combining multiple files into one.  
+- Optional tracing which provides full stack traces at runtime with source file, line and column info.  
+- Single and Multi project config files.  
+- Specify 1 or more output paths to automatically update addon's script.  
+- TODO: Custom build actions.  
+- TODO: vscode task template.  
+- TODO: Additional configurable options (changing emitter config).  
 
 Note that Linux is not supported properly yet, but should be in the future.  
 MacOS will not be officially supported, but if you have any issues feel free to make an issue on this repo.  
@@ -23,14 +25,18 @@ If you want to use `ssswtool` from anywhere, consider adding it to your PATH (th
 See (usage)[#Usage] for how to use this tool.  
 
 ## Usage
-Run `ssswtool.bat` either directly or just `ssswtool` if it's on your PATH.  
-The file `script.lua` is the default entrypoint, any files `require()` from there will be included into the output.  
-Build with `ssswtool build ./`.  
-The default output directory is `<CWD_OR_CONFIG_DIR>/_build/script.lua`.  
-You may create a `ssswtool.json` to customize the build process, it is high recommended to create this, see [below on how to set it up](#json-config-format).  
+Requires to be run in a cmd prompt.  
+If `ssswtool` was added to your PATH, you can use `ssswtool` directly, otherwise replace it with the path to `ssswtool.bat`.  
 
-You may replace `build` with `watch`, which will build, then upon any detected changes re-build your addon automatically.  
-It will detect changes even during a build (build loops will be detected and stopped).  
+1. Create a new project with `ssswtool new addon ./some_addon_name`.  
+2. Edit `script.lua`, any files `require`d from here will be included into the output.  
+3. Build with `ssswtool build ./`.  
+   The default output directory is `<PROJECT_DIR>/_build/script.lua`.  
+   It will also output to `<SW_SAVEDATA>/data/missions/<PROJECT_NAME>/script.lua` if the directory exists.  
+You may edit `ssswtool.json` to customize the build process, [see below](#json-config-format).  
+
+You may replace `build` with `watch`, which will re-build your addon automatically when any changes are detected.  
+Do be careful when modifying `ssswtool.json` while `watch` is running.  
 
 ## JSON Config format
 This section describes the format of `ssswtool.json` and any referenced configs by it.  
