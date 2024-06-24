@@ -91,7 +91,7 @@ function TransformerDefs:_add_trace_info(node, name, start_line, start_column, l
 			)
 		)),
 		ASTNodes.expressionlist(node, ASTNodes.table(node, ASTNodes.fieldlist(node,
-			ASTNodes.field(node, ASTNodes.string(node, "name"), ASTNodes.string(node, name)),
+			ASTNodes.field(node, ASTNodes.string(node, "name"), ASTNodes.string(node, Utils.escape_escape_sequences(name))),
 			ASTNodes.field(node, ASTNodes.string(node, "line"), ASTNodes.numeral(node, tostring(start_line))),
 			ASTNodes.field(node, ASTNodes.string(node, "column"), ASTNodes.numeral(node, tostring(start_column))),
 			ASTNodes.field(node, ASTNodes.string(node, "file"), ASTNodes.string(node, local_file_path))
