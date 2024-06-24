@@ -2,7 +2,9 @@ local modpath = ...
 
 local AVPath = require "avpath"
 local lfs = require "lfs"
-local MessagePack = require "MessagePack"
+-- local MessagePack = require "MessagePack"
+local CBOR = require "cbor"
+local AVCalcLine = require "avcalcline"
 
 local Utils = require "SelenScript.utils"
 local Parser = require "SelenScript.parser.parser"
@@ -105,16 +107,17 @@ function TransformerDefs:index(node)
 			if self.required_files[filepath] == nil then
 				local cache_dir = AVPath.join{self.multiproject.project_path, "_build", "cache"}
 				lfs.mkdir(cache_dir)
-				local cache_name = filepath:gsub("_", "__"):gsub(":", "_"):gsub("[\\/]", "_") .. ".msgpack"
+				local cache_name = filepath:gsub("_", "__"):gsub(":", "_"):gsub("[\\/]", "_") .. ".cbor"
 				local cache_path = AVPath.join{cache_dir, cache_name}
 				---@type ASTNodeSource
 				local ast
 				if AVPath.exists(cache_path) and lfs.attributes(filepath, "modification") < lfs.attributes(cache_path, "modification") then
 					print_info(("Cache read '%s'"):format(filepath_local))
 					local packed = Utils.readFile(cache_path, true)
-					local ok, unpacked = pcall(MessagePack.unpack, packed)
+					local ok, unpacked = pcall(CBOR.decode, packed)
 					if ok then
 						ast = unpacked
+						---@cast ast ASTNodeSource
 						ast.calcline = Parser._source_calcline
 					else
 						print_warn("Failed to load cached AST: " .. tostring(unpacked))
@@ -134,9 +137,8 @@ function TransformerDefs:index(node)
 						return node
 					end
 					local cpy = Utils.shallowcopy(ast)
-					cpy._avcalcline = nil
 					cpy.calcline = nil
-					local packed = MessagePack.pack(cpy)
+					local packed = CBOR.encode(cpy)
 					Utils.writeFile(cache_path, packed, true)
 				end
 				self:_add_require(
