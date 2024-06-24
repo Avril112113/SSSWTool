@@ -22,7 +22,7 @@ MacOS will not be officially supported, but if you have any issues feel free to 
 ## [Releases](https://github.com/Avril112113/SSSWTool/releases)
 See the [releases](https://github.com/Avril112113/SSSWTool/releases) for download.  
 If you want to use `ssswtool` from anywhere, consider adding it to your PATH (the directory containing `ssswtool.bat`).  
-See (usage)[#Usage] for how to use this tool.  
+See [usage](#Usage) for how to use this tool.  
 
 ## Usage
 Requires to be run in a cmd prompt.  
