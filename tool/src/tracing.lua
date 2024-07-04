@@ -112,8 +112,8 @@ function SS_SW_DBG.check_stack(expected)
 		table.insert(lines, 1, "Detected unwound stacktrace:")
 		for _, s in ipairs(lines) do debug.log("[SW] [ERROR] " .. s) end
 		SS_SW_DBG._server.announce(SS_SW_DBG._server.getAddonData((SS_SW_DBG._server.getAddonIndex())).name, table.concat(lines, "\n"), -1)
-		--Invoke callback for error if it exists and its type is "function"
-		if SS_SW_DBG.error_handler and type(SS_SW_DBG.error_handler) == "function" then
+		-- Invoke callback for error if it exists and its type is "function"
+		if type(SS_SW_DBG.error_handler) == "function" then
 			SS_SW_DBG.error_handler(SS_SW_DBG.get_current_info())
 		end
 		for i=expected_start-1,1,-1 do
