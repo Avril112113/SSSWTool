@@ -6,6 +6,10 @@
 -- Local is fine, since all combined files will be after this file.
 -- It also prevents accidential recursion with `_ENV`
 ---@class SS_SW_DBG
+--- The error handler is called when any error is detected, just before the stack is cleaned up.  
+--- The first argument is the top-most stack entry, which should be where the error occured.  
+--- See https://github.com/Avril112113/SSSWTool/blob/main/tool/src/tracing.lua for accessing the stack.  
+---@field error_handler fun(t:SS_SW_DBG.INFO)?
 local SS_SW_DBG = {}
 ---@type integer[]
 SS_SW_DBG._stack = {}
