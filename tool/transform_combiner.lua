@@ -17,12 +17,12 @@ local REQUIRE_SRC_FILE = AVPath.join{package.searchpath(modpath, package.path), 
 
 
 ---@class SSSWTool.Transformer_Combiner : SSSWTool.Transformer
----@field required_files table<string,ASTNodeSource|false>
+---@field required_files table<string,SelenScript.ASTNodeSource|false>
 local TransformerDefs = {}
 
 
----@param node ASTNode
----@return ASTNodeSource?
+---@param node SelenScript.ASTNode
+---@return SelenScript.ASTNodeSource?
 function TransformerDefs:_get_root_source(node)
 	local source = node
 	while true do
@@ -36,8 +36,8 @@ function TransformerDefs:_get_root_source(node)
 	return source.type == "source" and source or nil
 end
 
----@param node ASTNode
----@param func_node ASTNode
+---@param node SelenScript.ASTNode
+---@param func_node SelenScript.ASTNode
 ---@param modpath string
 ---@param filepath string
 function TransformerDefs:_add_require(node, func_node, modpath, filepath)
@@ -77,7 +77,7 @@ function TransformerDefs:_add_require(node, func_node, modpath, filepath)
 end
 
 
----@param node ASTNode
+---@param node SelenScript.ASTNode
 function TransformerDefs:index(node)
 	if node.type == "index" and node.expr.name == "require" then
 		-- print(AST.tostring_ast(node))
@@ -109,7 +109,7 @@ function TransformerDefs:index(node)
 				lfs.mkdir(cache_dir)
 				local cache_name = filepath:gsub("_", "__"):gsub(":", "_"):gsub("[\\/]", "_") .. ".cbor"
 				local cache_path = AVPath.join{cache_dir, cache_name}
-				---@type ASTNodeSource
+				---@type SelenScript.ASTNodeSource
 				local ast
 				if AVPath.exists(cache_path) and lfs.attributes(filepath, "modification") < lfs.attributes(cache_path, "modification") then
 					print_info(("Cache read '%s'"):format(filepath_local))
@@ -117,7 +117,7 @@ function TransformerDefs:index(node)
 					local ok, unpacked = pcall(CBOR.decode, packed)
 					if ok then
 						ast = unpacked
-						---@cast ast ASTNodeSource
+						---@cast ast SelenScript.ASTNodeSource
 						ast.calcline = Parser._source_calcline
 					else
 						print_warn("Failed to load cached AST: " .. tostring(unpacked))

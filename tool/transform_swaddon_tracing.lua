@@ -22,8 +22,8 @@ local SPECIAL_NAME = "SS_SW_DBG"
 local TransformerDefs = {}
 
 
----@param node ASTNode
----@return ASTNodeSource?
+---@param node SelenScript.ASTNode
+---@return SelenScript.ASTNodeSource?
 function TransformerDefs:_get_root_source(node)
 	local source = node
 	while true do
@@ -37,8 +37,8 @@ function TransformerDefs:_get_root_source(node)
 	return source.type == "source" and source or nil
 end
 
----@param node ASTNode
----@return ASTNodeSource
+---@param node SelenScript.ASTNode
+---@return SelenScript.ASTNodeSource
 function TransformerDefs:_ensure_tracingblock(node)
 	local source = self:_get_root_source(node)
 	assert(source ~= nil, "source ~= nil")
@@ -73,7 +73,7 @@ function TransformerDefs:_ensure_tracingblock(node)
 	return source
 end
 
----@param node ASTNode
+---@param node SelenScript.ASTNode
 ---@param name string
 ---@param start_line integer
 ---@param start_column integer
@@ -100,7 +100,7 @@ function TransformerDefs:_add_trace_info(node, name, start_line, start_column, l
 end
 
 
----@param node ASTNodeSource
+---@param node SelenScript.ASTNodeSource
 function TransformerDefs:source(node)
 	local root_source = assert(self:_get_root_source(node), "root_source_node ~= nil")
 	self:_ensure_tracingblock(root_source)
@@ -136,8 +136,8 @@ function TransformerDefs:source(node)
 	return node
 end
 
----@param node ASTNode
----@return ASTNode
+---@param node SelenScript.ASTNode
+---@return SelenScript.ASTNode
 function TransformerDefs:_generate_onTick_code(node)
 	return ASTNodes.block(node,
 			ASTNodes.index(
@@ -162,8 +162,8 @@ function TransformerDefs:_generate_onTick_code(node)
 		)
 end
 
----@param node ASTNode
----@return ASTNode
+---@param node SelenScript.ASTNode
+---@return SelenScript.ASTNode
 function TransformerDefs:_generate_httpReply_code(node)
 	return ASTNodes["if"](
 			node,
@@ -178,21 +178,21 @@ function TransformerDefs:_generate_httpReply_code(node)
 		)
 end
 
----@param node ASTNode
+---@param node SelenScript.ASTNode
 function TransformerDefs:funcbody(node)
 	if node._is_traced then
 		return node
 	end
 	node._is_traced = true
 
-	---@type ASTNodeSource
+	---@type SelenScript.ASTNodeSource
 	local root_source = assert(self:_get_root_source(node), "root_source ~= nil")
 
-	---@type ASTNodeSource
+	---@type SelenScript.ASTNodeSource
 	local source = assert(self:find_parent_of_type(node, "source"), "parent source node ~= nil")
 	local start_line, start_column = source:calcline(node.start)
 
-	---@type ASTNode?
+	---@type SelenScript.ASTNode?
 	local prepend_node
 	local name
 	local parent_node = self:get_parent(node)
@@ -280,7 +280,7 @@ local WHITELIST_STMT_TYPES = {
 	["assign"]=true,
 	["index"]=true,
 }
----@param node ASTNode
+---@param node SelenScript.ASTNode
 function TransformerDefs:block(node)
 	if self.config ~= "full" then
 		return node
@@ -294,7 +294,7 @@ function TransformerDefs:block(node)
 		return node
 	end
 
-	---@type ASTNodeSource
+	---@type SelenScript.ASTNodeSource
 	local source = assert(self:find_parent_of_type(node, "source"), "parent source node ~= nil")
 
 	for i=#node,1,-1 do

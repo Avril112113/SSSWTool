@@ -17,10 +17,10 @@ local function path_is(path, mode)
 end
 
 
----@class SSSWTool.Transformer : Transformer
+---@class SSSWTool.Transformer : SelenScript.Transformer
 ---@field multiproject SSSWTool.MultiProject
 ---@field project SSSWTool.Project
----@field parser Parser
+---@field parser SelenScript.Parser
 ---@field config any
 
 
@@ -250,7 +250,7 @@ function Project:build()
 	do
 		print_info("Emitting Lua")
 		local emitter_time_start = os.clock()
-		---@type LuaEmitterConfig
+		---@type SelenScript.LuaEmitterConfig
 		local emitter_config = {
 			luacats_source=true,
 		}
