@@ -2,8 +2,7 @@ local Utils = require "SelenScript.utils"
 local AvPath = require "avpath"
 
 
----@diagnostic disable-next-line: param-type-mismatch
-local presets_path = AvPath.join{AvPath.base(package.searchpath("tool.init", package.path)), "presets"}
+local presets_path = AvPath.join{require "tool.tool_path", "presets"}
 
 local PresetsUtils = {}
 
