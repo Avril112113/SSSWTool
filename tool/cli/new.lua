@@ -10,8 +10,17 @@ local function dir_empty(path)
 	return f(s) == nil
 end
 
+---@class SSSWTool.NewPreset.File
+---@field contents string
+---@field replace boolean?
+
+---@class SSSWTool.NewPreset
+---@field expect_empty_path boolean
+---@field files table<string,SSSWTool.NewPreset.File>
+
 local PRESETS = {
 	addon = require "tool.presets.new_addon",
+	buildactions = require "tool.presets.new_buildactions",
 }
 
 
@@ -25,11 +34,11 @@ return function(CLI)
 		handler = function(args, pos)
 			local project_type = args[pos]
 			pos = pos + 1
-			if project_type == nil then
-				print("Missing required argument #1, project type")
-				return -1
-			elseif project_type ~= "addon" then
-				print("Invalid project type, only \"addon\" is supported currently.")
+			if project_type == nil or PRESETS[project_type] == nil then
+				print("Invalid argument #1, expected one of the following:")
+				for name, _ in pairs(PRESETS) do
+					print(("- %s"):format(name))
+				end
 				return -1
 			end
 			local path = args[pos] or ""
@@ -43,27 +52,30 @@ return function(CLI)
 				return -1
 			end
 			path = AVPath.abs(path)
-			if AVPath.exists(path) and not dir_empty(path) then
-				print(("Directory is not empty \"%s\""):format(path))
-				print("Would you like to continue anyway?")
-				io.write("y/n ")
-				if io.stdin:read("*l") ~= "y" then
-					print("Aborted")
-					return -1
-				end
-			elseif not AVPath.exists(AVPath.base(path)) then
+			local name = AVPath.name(path)
+			local preset = PRESETS[project_type](name)
+			if not AVPath.exists(AVPath.base(path)) then
 				print(("Directory does not exist \"%s\""):format(AVPath.base(path)))
 				return -1
 			end
-			local name = AVPath.name(path)
-			print_info(("Creating new %s project '%s' at \"%s\""):format(project_type, name, path))
+			print_info(("Creating %s files for '%s' at \"%s\""):format(project_type, name, path))
 			if not AVPath.exists(path) then
 				lfs.mkdir(path)
 			end
-			for filepath, contents in pairs(PRESETS[project_type](name)) do
+			for filepath, data in pairs(preset.files) do
 				local full_filepath = AVPath.join{path, filepath}
-				lfs.mkdir(AVPath.base(full_filepath))
-				Utils.writeFile(full_filepath, contents)
+				local already_exists = AVPath.exists(full_filepath)
+				if already_exists and data.replace ~= true then
+					print_warn(("Skipped '%s' as it already exists."):format(filepath))
+				else
+					if already_exists then
+						print_info(("Replacing '%s'."):format(filepath))
+					else
+						print_info(("Writing '%s'."):format(filepath))
+					end
+					lfs.mkdir(AVPath.base(full_filepath))
+					Utils.writeFile(full_filepath, data.contents)
+				end
 			end
 		end,
 	}

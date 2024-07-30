@@ -12,17 +12,19 @@ The following is what this tool provides:
 - Optional tracing which provides full stack traces at runtime with source file, line and column info.  
 - Single and Multi project config files.  
 - Specify 1 or more output paths to automatically update addon's script.  
-- TODO: Custom build actions.  
+- Custom build actions (see below for [using build actions](#using-build-actions))  
 - TODO: vscode task template.  
 - TODO: Additional configurable options (changing emitter config).  
 
 Note that Linux is not supported properly yet, but should be in the future.  
 MacOS will not be officially supported, but if you have any issues feel free to make an issue on this repo.  
 
+
 ## [Releases](https://github.com/Avril112113/SSSWTool/releases)
 See the [releases](https://github.com/Avril112113/SSSWTool/releases) for download.  
 If you want to use `ssswtool` from anywhere, consider adding it to your PATH (the directory containing `ssswtool.bat`).  
 See [usage](#Usage) for how to use this tool.  
+
 
 ## Usage
 Requires to be run in a cmd prompt.  
@@ -39,7 +41,8 @@ You may edit `ssswtool.json` to customize the build process, [see below](#json-c
 You may replace `build` with `watch`, which will re-build your addon automatically when any changes are detected.  
 Do be careful when modifying `ssswtool.json` while `watch` is running.  
 
-## JSON Config format
+
+## ssswtool.json Config format
 This section describes the format of `ssswtool.json` and any referenced configs by it.  
 NOTE that comments are not supported, they must be removed from the examples to utilize them.
 
@@ -87,7 +90,24 @@ Multi-Project and config reference example
 ]
 ```
 
-**Pre-Built Binaries:**  
+
+## Using build actions
+**DO NOT USE CODE YOU DON'T TRUST!** It is your responsibility to ensure this.  
+Build actions are run within SSSWTool without sandboxing, as such has the same capabilities.  
+
+To get started with build actions, run `ssswtool new buildactions .` in the project directory.  
+You will now have a folder `_buildactions` which should contain all of your future build actions code.  
+Build actions run the file `_buildactions/init.lua`, the default file contains additional info you may need.  
+
+SSSWTool build actions are not compatible with LifeBoatAPI and will never be.  
+
+
+## User Config
+A simple user config is stored at `%appdata%/.ssswtool.json`  
+Currently, this is only used for storing whitelisted directories for build actions.  
+
+
+## Pre-Built Binaries
 Releases contain [`luajit`](https://luajit.org/) pre-built for windows x64 (deleting it will use system version instead).  
 
 The following can be found in `SelenScript/libs`:  

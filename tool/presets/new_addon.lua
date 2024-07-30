@@ -44,10 +44,14 @@ local VSCODE_SETTINGS = [[
 ]]
 
 return function(name)
+	---@type SSSWTool.NewPreset
 	return {
-		["ssswtool.json"] = SSSWTOOL_JSON_FMT:format(name),
-		["script.lua"] = SCRIPT,
-		[".gitignore"] = GITIGNORE,
-		[".vscode/settings.json"] = VSCODE_SETTINGS,
+		expect_empty_path = true,
+		files = {
+			["ssswtool.json"] = {contents=SSSWTOOL_JSON_FMT:format(name)},
+			["script.lua"] = {contents=SCRIPT},
+			[".gitignore"] = {contents=GITIGNORE},
+			[".vscode/settings.json"] = {contents=VSCODE_SETTINGS},
+		},
 	}
 end

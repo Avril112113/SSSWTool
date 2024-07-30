@@ -54,5 +54,16 @@ function Config:read(path)
 	return true
 end
 
+--- Saves the config data to the given path.
+---@param path string
+function Config:save(path)
+	local f, msg, code = io.open(path, "w")
+	if not f then
+		return false, ("Failed to write config '%s'\n%s"):format(path, msg)
+	end
+	f:write(json.encode(self.data))
+	return true
+end
+
 
 return Config

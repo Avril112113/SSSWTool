@@ -1,0 +1,1 @@
+-- This file is only here for `package.searchpath`

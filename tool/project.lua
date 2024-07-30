@@ -8,6 +8,8 @@ local Utils = require "SelenScript.utils"
 local ASTHelpers = require "SelenScript.transformer.ast_helpers"
 local AST = require "SelenScript.parser.ast"
 
+local UserConfig = require "tool.userconfig"
+
 
 ---@param path string
 ---@param mode LuaFileSystem.AttributeMode
@@ -22,6 +24,7 @@ end
 ---@field project SSSWTool.Project
 ---@field parser SelenScript.Parser
 ---@field config any
+---@field buildactions SSSWTool.BuildActions
 
 
 ---@class SSSWTool.Project.Config
@@ -109,6 +112,25 @@ function Project:__tostring()
 	return ("<%s %p '%s'>"):format(Project.__name, self, self.config and self.config.name)
 end
 
+function Project:get_buildactions_init_path()
+	return AVPath.join{self.multiproject.project_path, "_buildactions", "init.lua"}
+end
+
+function Project:has_buildactions()
+	return AVPath.exists(self:get_buildactions_init_path())
+end
+
+function Project:ask_buildactions_whitelist()
+	print_warn("Build actions are not whitelisted for this directory, would you like to add this project to the whitelist?")
+	io.write("y/n ")
+	if io.read("*l") == "y" then
+		print_info("Whitelisting build actions for '%s'")
+		UserConfig.buildactions_whitelist_add(self.multiproject.project_path)
+		return true
+	end
+	return false
+end
+
 ---@param path string # Project local path to file.
 ---@return string, string, nil
 ---@overload fun(path:string): nil, nil, string
@@ -181,6 +203,47 @@ function Project:build()
 	local underscore_build_path = AVPath.join{self.multiproject.project_path, "_build"}
 	lfs.mkdir(underscore_build_path)
 
+	---@type SSSWTool.BuildActions?
+	local buildactions
+	local revert_global_changes
+	local has_buildactions = self:has_buildactions()
+	local allowed_buildactions = has_buildactions and UserConfig.buildactions_whitelist_check(self.multiproject.project_path)
+	if has_buildactions and not allowed_buildactions then
+		allowed_buildactions = self:ask_buildactions_whitelist()
+	end
+	if has_buildactions and not allowed_buildactions then
+		print_error("Build actions not whitelisted for this directory, this may cause issues for this project.")
+	else
+		local buildactions_file = self:get_buildactions_init_path()
+		local buildactions_folder = AVPath.base(self:get_buildactions_init_path())
+		print_info(("Loading build actions from '%s'"):format(buildactions_file))
+		local package_path = package.path
+		revert_global_changes = function()
+			---@diagnostic disable-next-line: assign-type-mismatch
+			package.path = package_path
+		end
+		package.path = package.path .. (";%s/?.lua;%s/?/init.lua;"):format(buildactions_folder, buildactions_folder)
+		local load_buildactions, err = loadfile(buildactions_file, "t", setmetatable({}, {__index=_G}))
+		if err or not load_buildactions then
+			print_error("Failed to load build actions:\n" .. tostring(err))
+			revert_global_changes()
+			return false
+		end
+		local ok, tbuildactions = pcall(load_buildactions)
+		if not ok then
+			print_error("Failed to load build actions:\n" .. tostring(tbuildactions))
+			revert_global_changes()
+			return false
+		elseif type(tbuildactions) ~= "table" then
+			print_error("Failed to load build actions:\nBuild actions didn't return a table.")
+			revert_global_changes()
+			return false
+		end
+		buildactions = tbuildactions
+	end
+
+	if buildactions and buildactions.pre_build then buildactions.pre_build(self.multiproject, self) end
+
 	local parser
 	do
 		local errors
@@ -193,10 +256,12 @@ function Project:build()
 			for _, v in ipairs(errors) do
 				print_error((v.id or "NO_ID") .. ": " .. v.msg)
 			end
+			if revert_global_changes then revert_global_changes() end
 			return false
 		end
 		if parser == nil or #errors > 0 then
 			print_error("Failed to create parser.")
+			if revert_global_changes then revert_global_changes() end
 			return false
 		end
 	end
@@ -205,14 +270,19 @@ function Project:build()
 	do
 		local errors
 		print_info(("Parsing '%s'"):format(entry_file_name))
+		if buildactions and buildactions.pre_file then buildactions.pre_file(self.multiproject, self, entry_file_path) end
+		if buildactions and buildactions.pre_parse then buildactions.pre_parse(self.multiproject, self, entry_file_path) end
 		ast, errors, comments = parser:parse(entry_file_src, entry_file_path)
+		if buildactions and buildactions.post_parse then buildactions.post_parse(self.multiproject, self, entry_file_path, ast, errors, comments) end
 		if #errors > 0 then
 			print_error("-- Parse Errors: " .. #errors .. " --")
 			for _, v in ipairs(errors) do
 				print_error(v.id .. ": " .. v.msg)
 			end
+			if revert_global_changes then revert_global_changes() end
 			return false
 		end
+		if buildactions and buildactions.post_file then buildactions.post_file(self.multiproject, self, entry_file_path) end
 	end
 
 	for _, transformer_name in ipairs(Project.TRANSFORM_ORDER) do
@@ -226,12 +296,14 @@ function Project:build()
 				project = self,
 				parser = parser,
 				config = self.config.transformers[transformer_name],
+				buildactions = buildactions,
 			})
 			if #errors > 0 then
 				print_error("-- Transformer Errors: " .. #errors .. " --")
 				for _, v in ipairs(errors) do
 					print_error(v.id .. ": " .. v.msg)
 				end
+				if revert_global_changes then revert_global_changes() end
 				return false
 			end
 			print_info(("Finished '%s' in %.3fs."):format(transformer_name, os.clock()-transform_time_start))
@@ -239,6 +311,8 @@ function Project:build()
 		-- 	print_info(("Transforming AST skipped '%s' (disabled)"):format(transformer_name))
 		end
 	end
+
+	if buildactions and buildactions.post_transform then buildactions.post_transform(self.multiproject, self, ast) end
 
 	do
 		-- Add comment at beginning of file to disable all diagnostics of the file.
@@ -268,6 +342,8 @@ function Project:build()
 		print_info("Writing to '_build'")
 		Utils.writeFile(AVPath.join{underscore_build_path, self.config.name .. ".lua"}, script_out)
 	end
+
+	if buildactions and buildactions.post_build then buildactions.post_build(self.multiproject, self) end
 
 	if self.config.out ~= nil then
 		local sw_save_path
@@ -300,6 +376,7 @@ function Project:build()
 		end
 	end
 
+	if revert_global_changes then revert_global_changes() end
 	print_info(("Finished build in %.3fs."):format(os.clock()-time_start))
 	return true
 end
