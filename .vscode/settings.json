@@ -1,8 +1,6 @@
 {
 	"Lua.runtime.version": "LuaJIT",
 	"Lua.workspace.library": [
-		"c:/Users/avril/.vscode/extensions/nameouschangey.lifeboatapi-0.0.33/assets/lua/Common/",
-		"c:/Users/avril/.vscode/extensions/nameouschangey.lifeboatapi-0.0.33/assets/lua/Addon/",
 		"C:/Users/avril/AppData/Roaming/Code/User/globalStorage/sumneko.lua/addonManager/addons/luafilesystem/module/library",
 		"C:/Users/avril/AppData/Roaming/Code/User/globalStorage/sumneko.lua/addonManager/addons/luasocket/module/library",
 		"C:/Projects/Lua/Stormworks/AvrilsSWTools/AVCmds",

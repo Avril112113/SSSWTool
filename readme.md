@@ -36,10 +36,14 @@ If `ssswtool` was added to your PATH, you can use `ssswtool` directly, otherwise
 4. Build with `ssswtool build ./`.  
    The default output directory is `<PROJECT_DIR>/_build/script.lua`.  
    It will also output to `<SW_SAVEDATA>/data/missions/<PROJECT_NAME>/script.lua` if the directory exists.  
+
 You may edit `ssswtool.json` to customize the build process, [see below](#json-config-format).  
 
-You may replace `build` with `watch`, which will re-build your addon automatically when any changes are detected.  
+You may use `ssswtool watch ./`, which will re-build your addon automatically when any changes are detected.  
 Do be careful when modifying `ssswtool.json` while `watch` is running.  
+
+You will also see `intellisense.lua` which is automatically downloaded from [Cuh4/StormworksAddonLuaDocumentation](https://github.com/Cuh4/StormworksAddonLuaDocumentation/blob/main/docs/intellisense.lua), this is used for typing information.  
+If you want to update this file you can safely re-run `ssswtool new addon ./` in the project's directory to update this file.  
 
 
 ## ssswtool.json Config format
@@ -114,3 +118,4 @@ The following can be found in `SelenScript/libs`:
 \- [`lfs`/`luafilesystem`](https://luarocks.org/modules/hisham/luafilesystem)  
 \- [`lpeglabel`](https://luarocks.org/modules/sergio-medeiros/lpeglabel)  
 \- [`luanotify`](https://github.com/Avril112113/luanotify)  
+\- [`luasocket`](https://luarocks.org/modules/luasocket/luasocket)  
