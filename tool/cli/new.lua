@@ -58,7 +58,7 @@ return function(CLI)
 				print(("Directory does not exist \"%s\""):format(AVPath.base(path)))
 				return -1
 			end
-			print_info(("Creating %s files for '%s' at \"%s\""):format(project_type, name, path))
+			print_info(("Updating %s files for '%s' at \"%s\""):format(project_type, name, path))
 			if not AVPath.exists(path) then
 				lfs.mkdir(path)
 			end

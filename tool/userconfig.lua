@@ -15,6 +15,17 @@ UserConfig.CONFIG_PATH = CONFIG_PATH
 UserConfig._config = Config.new()
 UserConfig._config:read(CONFIG_PATH)
 
+---@param set boolean?
+---@return boolean?
+function UserConfig.intellisense_autoupdate_allowed(set)
+	local data = UserConfig._config.data
+	if set ~= nil then
+		data["intellisense_autoupdate_allowed"] = not not set
+		UserConfig._config:save(CONFIG_PATH)
+	end
+	return data["intellisense_autoupdate_allowed"]
+end
+
 
 ---@param path string
 function UserConfig.buildactions_whitelist_add(path)
