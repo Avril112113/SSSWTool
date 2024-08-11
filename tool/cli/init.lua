@@ -7,6 +7,7 @@ local CLI = {}
 
 ---@type table<string,SSWTool.CLI.Action>
 CLI.actions = {
+	userconfig = require("tool.cli.userconfig")(CLI),
 	help = require("tool.cli.help")(CLI),
 	build = require("tool.cli.build")(CLI),
 	watch = require("tool.cli.watch")(CLI),

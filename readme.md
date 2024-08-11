@@ -116,6 +116,6 @@ Releases contain [`luajit`](https://luajit.org/) pre-built for windows x64 (dele
 
 The following can be found in `SelenScript/libs`:  
 \- [`lfs`/`luafilesystem`](https://luarocks.org/modules/hisham/luafilesystem)  
-\- [`lpeglabel`](https://luarocks.org/modules/sergio-medeiros/lpeglabel)  
+\- [`lpeglabel`](https://luarocks.org/modules/sergio-medeiros/lpeglabel) (See [this repo](https://github.com/Avril112113/lpeglabel) for modifications)  
 \- [`luanotify`](https://github.com/Avril112113/luanotify)  
 \- [`luasocket`](https://luarocks.org/modules/luasocket/luasocket)  
