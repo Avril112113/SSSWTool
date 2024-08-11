@@ -11,6 +11,13 @@ PresetsUtils.PRESETS_PATH = PRESETS_PATH
 
 
 ---@param path string
+function PresetsUtils.exists(path)
+	path = AvPath.join{PRESETS_PATH, path}
+	return AvPath.exists(path)
+end
+
+
+---@param path string
 ---@param binary boolean?
 function PresetsUtils.read_file(path, binary)
 	path = AvPath.join{PRESETS_PATH, path}

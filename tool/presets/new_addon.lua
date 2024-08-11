@@ -79,6 +79,7 @@ return function(name)
 			end
 			io.write("\n")
 		end
+		print("You can change this setting using 'ssswtool userconfig'")
 	end
 	if UserConfig.intellisense_autoupdate_allowed() then
 		local should_update_intellisense = false
@@ -121,16 +122,21 @@ return function(name)
 		end
 	end
 
+	local files = {
+		["ssswtool.json"] = {contents=SSSWTOOL_JSON_FMT:format(name)},
+		["script.lua"] = {contents=SCRIPT},
+		[".gitignore"] = {contents=GITIGNORE},
+		[".vscode/settings.json"] = {contents=VSCODE_SETTINGS},
+	}
+	if PresetsUtils.exists("addon/intellisense.lua") then
+		files["intellisense.lua"] = {replace=true, contents=PresetsUtils.read_file("addon/intellisense.lua")}
+	else
+		print_warn("Preset is missing 'intellisense.lua', this is likely due to automatic intellisense updates being disabled.")
+	end
 
 	---@type SSSWTool.NewPreset
 	return {
 		expect_empty_path = true,
-		files = {
-			["ssswtool.json"] = {contents=SSSWTOOL_JSON_FMT:format(name)},
-			["script.lua"] = {contents=SCRIPT},
-			["intellisense.lua"] = {replace=true, contents=PresetsUtils.read_file("addon/intellisense.lua")},
-			[".gitignore"] = {contents=GITIGNORE},
-			[".vscode/settings.json"] = {contents=VSCODE_SETTINGS},
-		},
+		files = files,
 	}
 end
