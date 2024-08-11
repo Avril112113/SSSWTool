@@ -213,7 +213,7 @@ function Project:build()
 	end
 	if has_buildactions and not allowed_buildactions then
 		print_error("Build actions not whitelisted for this directory, this may cause issues for this project.")
-	else
+	elseif has_buildactions then
 		local buildactions_file = self:get_buildactions_init_path()
 		local buildactions_folder = AVPath.base(self:get_buildactions_init_path())
 		print_info(("Loading build actions from '%s'"):format(buildactions_file))
