@@ -16,7 +16,7 @@ local TRACING_PREFIX_SRC_FILE = AVPath.join{package.searchpath(modpath, package.
 --- Used for converting AST nodes into strings
 local emitter = Emitter.new("lua", {})
 
-local SPECIAL_NAME = "SS_SW_DBG"
+local SPECIAL_NAME = "SSSW_DBG"
 
 ---@class SSSWTool.Transformer_Tracing : SSSWTool.Transformer
 local TransformerDefs = {}
