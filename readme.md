@@ -11,8 +11,10 @@ The following is what this tool provides:
 - Combining multiple files into one.  
 - Optional tracing which provides full stack traces at runtime with source file, line and column info.  
 - Single and Multi project config files.  
-- Specify 1 or more output paths to automatically update addon's script.  
+- Specify output paths to automatically update addon scripts.  
 - Custom build actions (see below for [using build actions](#using-build-actions))  
+- Intellisense information (from [Cuh4/StormworksAddonLuaDocumentation](https://github.com/Cuh4/StormworksAddonLuaDocumentation/blob/main/docs/intellisense.lua))
+- `watch` command to re-build automatically upon changes.  
 - TODO: vscode task template.  
 - TODO: Additional configurable options (changing emitter config).  
 
@@ -99,16 +101,18 @@ Multi-Project and config reference example
 **DO NOT USE CODE YOU DON'T TRUST!** It is your responsibility to ensure this.  
 Build actions are run within SSSWTool without sandboxing, as such has the same capabilities.  
 
-To get started with build actions, run `ssswtool new buildactions .` in the project directory.  
+To get started with build actions, run `ssswtool new buildactions ./` in the project directory.  
 You will now have a folder `_buildactions` which should contain all of your future build actions code.  
 Build actions run the file `_buildactions/init.lua`, the default file contains additional info you may need.  
+
+Note that build actions may be run frequently and with partially written code when using the `watch` CLI action.  
 
 SSSWTool build actions are not compatible with LifeBoatAPI and will never be.  
 
 
 ## User Config
 A simple user config is stored at `%appdata%/.ssswtool.json`  
-Currently, this is only used for storing whitelisted directories for build actions.  
+Currently, this is only used for storing whitelisted directories for build actions and if updates to intellisense info is checked.  
 
 
 ## Pre-Built Binaries
