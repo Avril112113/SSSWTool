@@ -111,7 +111,7 @@ function TransformerDefs:index(node)
 				local cache_path = AVPath.join{cache_dir, cache_name}
 				---@type SelenScript.ASTNodeSource
 				local ast
-				if self.buildactions and self.buildactions.pre_file then self.buildactions.pre_file(self.multiproject, self.project, filepath) end
+				if not self.project:call_buildaction(self.buildactions, "pre_file", filepath) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
 				if AVPath.exists(cache_path) and lfs.attributes(filepath, "modification") < lfs.attributes(cache_path, "modification") then
 					print_info(("Cache read '%s'"):format(filepath_local))
 					local packed = Utils.readFile(cache_path, true)
@@ -127,7 +127,7 @@ function TransformerDefs:index(node)
 				end
 				if ast == nil then
 					print_info(("Parsing '%s'"):format(filepath_local))
-					if self.buildactions and self.buildactions.pre_parse then self.buildactions.pre_parse(self.multiproject, self.project, filepath) end
+					if not self.project:call_buildaction(self.buildactions, "pre_parse", filepath) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
 					local errors, comments
 					ast, errors, comments = self.parser:parse(Utils.readFile(filepath), filepath)
 					if #errors > 0 then
@@ -138,13 +138,13 @@ function TransformerDefs:index(node)
 						self.required_files[filepath] = false
 						return node
 					end
-					if self.buildactions and self.buildactions.post_parse then self.buildactions.post_parse(self.multiproject, self.project, filepath, ast, errors, comments) end
+					if not self.project:call_buildaction(self.buildactions, "post_parse", filepath, ast, errors, comments) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
 					local cpy = Utils.shallowcopy(ast)
 					cpy.calcline = nil
 					local packed = CBOR.encode(cpy)
 					Utils.writeFile(cache_path, packed, true)
 				end
-				if self.buildactions and self.buildactions.post_file then self.buildactions.post_file(self.multiproject, self.project, filepath, ast) end
+				if not self.project:call_buildaction(self.buildactions, "post_file", filepath, ast) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
 				self:_add_require(
 					call_node,
 					ASTNodes["function"](ast, ASTNodes.funcbody(ast, ASTNodes.expressionlist(ast, ASTNodes.var_args(ast)), ast)),

@@ -189,6 +189,17 @@ function Project:findModFile(modpath, path)
 	return nil, nil, err
 end
 
+function Project:call_buildaction(buildactions, name, ...)
+	local f = buildactions and buildactions[name]
+	if not f then return true end
+	local ok, msg = xpcall(f, debug.traceback, self.multiproject, self, ...)
+	if not ok then
+		print_error(("Error in build action '%s'\n%s"):format(name, msg))
+		return false
+	end
+	return true
+end
+
 function Project:build()
 	local time_start = os.clock()
 
@@ -229,7 +240,7 @@ function Project:build()
 			revert_global_changes()
 			return false
 		end
-		local ok, tbuildactions = pcall(load_buildactions)
+		local ok, tbuildactions = xpcall(load_buildactions, debug.traceback)
 		if not ok then
 			print_error("Failed to load build actions:\n" .. tostring(tbuildactions))
 			revert_global_changes()
@@ -242,7 +253,7 @@ function Project:build()
 		buildactions = tbuildactions
 	end
 
-	if buildactions and buildactions.pre_build then buildactions.pre_build(self.multiproject, self) end
+	if not self:call_buildaction(buildactions, "pre_build") then print_error("Build stopped, see above.") return false end
 
 	local parser
 	do
@@ -270,10 +281,10 @@ function Project:build()
 	do
 		local errors
 		print_info(("Parsing '%s'"):format(entry_file_name))
-		if buildactions and buildactions.pre_file then buildactions.pre_file(self.multiproject, self, entry_file_path) end
-		if buildactions and buildactions.pre_parse then buildactions.pre_parse(self.multiproject, self, entry_file_path) end
+		if not self:call_buildaction(buildactions, "pre_file", entry_file_path) then print_error("Build stopped, see above.") return false end
+		if not self:call_buildaction(buildactions, "pre_parse", entry_file_path) then print_error("Build stopped, see above.") return false end
 		ast, errors, comments = parser:parse(entry_file_src, entry_file_path)
-		if buildactions and buildactions.post_parse then buildactions.post_parse(self.multiproject, self, entry_file_path, ast, errors, comments) end
+		if not self:call_buildaction(buildactions, "post_parse", entry_file_path, ast, errors, comments) then print_error("Build stopped, see above.") return false end
 		if #errors > 0 then
 			print_error("-- Parse Errors: " .. #errors .. " --")
 			for _, v in ipairs(errors) do
@@ -282,7 +293,7 @@ function Project:build()
 			if revert_global_changes then revert_global_changes() end
 			return false
 		end
-		if buildactions and buildactions.post_file then buildactions.post_file(self.multiproject, self, entry_file_path) end
+		if not self:call_buildaction(buildactions, "post_file", entry_file_path) then print_error("Build stopped, see above.") return false end
 	end
 
 	for _, transformer_name in ipairs(Project.TRANSFORM_ORDER) do
@@ -291,13 +302,20 @@ function Project:build()
 			local transform_time_start = os.clock()
 			local TransformerDefs = assert(Project.TRANSFORMERS[transformer_name], ("Missing transformer"):format(transformer_name))
 			local transformer = Transformer.new(TransformerDefs)
-			local errors = transformer:transform(ast, {
+			local ok, errors = xpcall(transformer.transform, debug.traceback, transformer, ast, {
 				multiproject = self.multiproject,
 				project = self,
 				parser = parser,
 				config = self.config.transformers[transformer_name],
 				buildactions = buildactions,
 			})
+			if not ok then
+				if type(errors) == "string" and errors:find("STOP_BUILD_QUIET") then
+					return false
+				else
+					print_error(errors)
+				end
+			end
 			if #errors > 0 then
 				print_error("-- Transformer Errors: " .. #errors .. " --")
 				for _, v in ipairs(errors) do
@@ -312,7 +330,7 @@ function Project:build()
 		end
 	end
 
-	if buildactions and buildactions.post_transform then buildactions.post_transform(self.multiproject, self, ast) end
+	if not self:call_buildaction(buildactions, "post_transform", ast) then print_error("Build stopped, see above.") return false end
 
 	do
 		-- Add comment at beginning of file to disable all diagnostics of the file.
@@ -343,7 +361,7 @@ function Project:build()
 		Utils.writeFile(AVPath.join{underscore_build_path, self.config.name .. ".lua"}, script_out)
 	end
 
-	if buildactions and buildactions.post_build then buildactions.post_build(self.multiproject, self) end
+	if not self:call_buildaction(buildactions, "post_build") then print_error("Build stopped, see above.") return false end
 
 	if self.config.out ~= nil then
 		local sw_save_path
