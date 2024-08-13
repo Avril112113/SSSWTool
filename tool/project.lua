@@ -293,7 +293,7 @@ function Project:build()
 			if revert_global_changes then revert_global_changes() end
 			return false
 		end
-		if not self:call_buildaction(buildactions, "post_file", entry_file_path) then print_error("Build stopped, see above.") return false end
+		if not self:call_buildaction(buildactions, "post_file", entry_file_path, ast) then print_error("Build stopped, see above.") return false end
 	end
 
 	for _, transformer_name in ipairs(Project.TRANSFORM_ORDER) do
