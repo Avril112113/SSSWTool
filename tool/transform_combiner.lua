@@ -17,12 +17,12 @@ local REQUIRE_SRC_FILE = AVPath.join{package.searchpath(modpath, package.path), 
 
 
 ---@class SSSWTool.Transformer_Combiner : SSSWTool.Transformer
----@field required_files table<string,SelenScript.ASTNodeSource|false>
+---@field required_files table<string,SelenScript.ASTNodes.Source|false>
 local TransformerDefs = {}
 
 
----@param node SelenScript.ASTNode
----@return SelenScript.ASTNodeSource?
+---@param node SelenScript.ASTNodes.Node
+---@return SelenScript.ASTNodes.Source?
 function TransformerDefs:_get_root_source(node)
 	local source = node
 	while true do
@@ -33,11 +33,12 @@ function TransformerDefs:_get_root_source(node)
 			break
 		end
 	end
+	---@cast source SelenScript.ASTNodes.Source
 	return source.type == "source" and source or nil
 end
 
----@param node SelenScript.ASTNode
----@param func_node SelenScript.ASTNode
+---@param node SelenScript.ASTNodes.Node
+---@param func_node SelenScript.ASTNodes.function
 ---@param modpath string
 ---@param filepath string
 function TransformerDefs:_add_require(node, func_node, modpath, filepath)
@@ -77,7 +78,7 @@ function TransformerDefs:_add_require(node, func_node, modpath, filepath)
 end
 
 
----@param node SelenScript.ASTNode
+---@param node SelenScript.ASTNodes.index
 function TransformerDefs:index(node)
 	if node.type == "index" and node.expr.name == "require" then
 		-- print(AST.tostring_ast(node))
@@ -90,6 +91,7 @@ function TransformerDefs:index(node)
 		else
 			return node
 		end
+		---@cast call_node SelenScript.ASTNodes.call
 		if call_node.args.type == "string" then
 			modpath = call_node.args.value
 		elseif call_node.args[1].type == "string" then

@@ -18,12 +18,25 @@ local emitter = Emitter.new("lua", {})
 
 local SPECIAL_NAME = "SSSW_DBG"
 
+-- AST Node class field injections
+
+---@class SelenScript.ASTNodes.Source
+---@field _has_onTick true?
+---@field _has_httpReply true?
+
+---@class SelenScript.ASTNodes.funcbody
+---@field _is_traced true?
+
+---@class SelenScript.ASTNodes.block
+---@field _is_traced true?
+
+
 ---@class SSSWTool.Transformer_Tracing : SSSWTool.Transformer
 local TransformerDefs = {}
 
 
----@param node SelenScript.ASTNode
----@return SelenScript.ASTNodeSource?
+---@param node SelenScript.ASTNodes.Node
+---@return SelenScript.ASTNodes.Source?
 function TransformerDefs:_get_root_source(node)
 	local source = node
 	while true do
@@ -34,11 +47,12 @@ function TransformerDefs:_get_root_source(node)
 			break
 		end
 	end
+	---@cast source SelenScript.ASTNodes.Source
 	return source.type == "source" and source or nil
 end
 
----@param node SelenScript.ASTNode
----@return SelenScript.ASTNodeSource
+---@param node SelenScript.ASTNodes.Node
+---@return SelenScript.ASTNodes.Source
 function TransformerDefs:_ensure_tracingblock(node)
 	local source = self:_get_root_source(node)
 	assert(source ~= nil, "source ~= nil")
@@ -73,7 +87,7 @@ function TransformerDefs:_ensure_tracingblock(node)
 	return source
 end
 
----@param node SelenScript.ASTNode
+---@param node SelenScript.ASTNodes.Node
 ---@param name string
 ---@param start_line integer
 ---@param start_column integer
@@ -100,7 +114,7 @@ function TransformerDefs:_add_trace_info(node, name, start_line, start_column, l
 end
 
 
----@param node SelenScript.ASTNodeSource
+---@param node SelenScript.ASTNodes.Source
 function TransformerDefs:source(node)
 	local root_source = assert(self:_get_root_source(node), "root_source_node ~= nil")
 	self:_ensure_tracingblock(root_source)
@@ -136,8 +150,8 @@ function TransformerDefs:source(node)
 	return node
 end
 
----@param node SelenScript.ASTNode
----@return SelenScript.ASTNode
+---@param node SelenScript.ASTNodes.Node
+---@return SelenScript.ASTNodes.Node
 function TransformerDefs:_generate_onTick_code(node)
 	return ASTNodes.block(node,
 			ASTNodes.index(
@@ -162,8 +176,8 @@ function TransformerDefs:_generate_onTick_code(node)
 		)
 end
 
----@param node SelenScript.ASTNode
----@return SelenScript.ASTNode
+---@param node SelenScript.ASTNodes.Node
+---@return SelenScript.ASTNodes.Node
 function TransformerDefs:_generate_httpReply_code(node)
 	return ASTNodes["if"](
 			node,
@@ -178,25 +192,25 @@ function TransformerDefs:_generate_httpReply_code(node)
 		)
 end
 
----@param node SelenScript.ASTNode
+---@param node SelenScript.ASTNodes.funcbody
 function TransformerDefs:funcbody(node)
 	if node._is_traced then
 		return node
 	end
 	node._is_traced = true
 
-	---@type SelenScript.ASTNodeSource
 	local root_source = assert(self:_get_root_source(node), "root_source ~= nil")
 
-	---@type SelenScript.ASTNodeSource
 	local source = assert(self:find_parent_of_type(node, "source"), "parent source node ~= nil")
+	---@cast source SelenScript.ASTNodes.Source
 	local start_line, start_column = source:calcline(node.start)
 
-	---@type SelenScript.ASTNode?
+	---@type SelenScript.ASTNodes.Node?
 	local prepend_node
 	local name
 	local parent_node = self:get_parent(node)
 	if parent_node.type == "functiondef" then
+		---@cast parent_node SelenScript.ASTNodes.functiondef
 		name = emitter:generate(parent_node.name)
 		if name:sub(1, #SPECIAL_NAME) == SPECIAL_NAME then
 			return node
@@ -210,10 +224,12 @@ function TransformerDefs:funcbody(node)
 			end
 		end
 	elseif parent_node.type == "function" then
+		---@cast parent_node SelenScript.ASTNodes.function
 		local parent_expressionlist_node = self:get_parent(parent_node)
 		if parent_expressionlist_node and parent_expressionlist_node.type == "expressionlist" then
 			local parent_assign_node = self:get_parent(parent_expressionlist_node)
 			if parent_assign_node and parent_assign_node.type == "assign" then
+				---@cast parent_assign_node SelenScript.ASTNodes.assign
 				local index = Utils.find_key(parent_expressionlist_node, parent_node)
 				local name_node = parent_assign_node.names[index]
 				if name_node then
@@ -237,6 +253,7 @@ function TransformerDefs:funcbody(node)
 	end
 	local local_source_node = self:find_parent_of_type(node, "source")
 	assert(local_source_node ~= nil, "local_source_node ~= nil")
+	---@cast local_source_node SelenScript.ASTNodes.Source
 	local local_file_path = "<UNKNOWN>"
 	if local_source_node.file then
 		if local_source_node.file:find("^<SSSWTOOL>[\\/]") then
@@ -280,7 +297,7 @@ local WHITELIST_STMT_TYPES = {
 	["assign"]=true,
 	["index"]=true,
 }
----@param node SelenScript.ASTNode
+---@param node SelenScript.ASTNodes.block
 function TransformerDefs:block(node)
 	if self.config ~= "full" then
 		return node
@@ -294,11 +311,12 @@ function TransformerDefs:block(node)
 		return node
 	end
 
-	---@type SelenScript.ASTNodeSource
 	local source = assert(self:find_parent_of_type(node, "source"), "parent source node ~= nil")
+	---@cast source SelenScript.ASTNodes.Source
 
 	for i=#node,1,-1 do
 		local child = node[i]
+		---@cast child -?
 		if not WHITELIST_STMT_TYPES[child.type] then
 			goto continue
 		end
@@ -314,11 +332,13 @@ function TransformerDefs:block(node)
 		self._swdbg_index = self._swdbg_index and self._swdbg_index + 1 or 1
 		local name = "stmt_"..child.type
 		if child.type == "index" then
+			---@cast child SelenScript.ASTNodes.index
 			name = emitter:generate(child)
 			if name:find("\n") then
 				name = name:match("(.-)\n")
 			end
 		elseif child.type == "assign" then
+			---@cast child SelenScript.ASTNodes.assign
 			local cpy = Utils.shallowcopy(child)
 			cpy.values = ASTNodes.expressionlist(child)
 			name = emitter:generate(cpy) .. " ="

@@ -189,6 +189,9 @@ function Project:findModFile(modpath, path)
 	return nil, nil, err
 end
 
+---@param buildactions SSSWTool.BuildActions?
+---@param name string
+---@param ... any
 function Project:call_buildaction(buildactions, name, ...)
 	local f = buildactions and buildactions[name]
 	if not f then return true end

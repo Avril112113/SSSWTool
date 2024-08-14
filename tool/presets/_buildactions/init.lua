@@ -44,7 +44,7 @@ end
 ---@param multiproject SSSWTool.MultiProject
 ---@param project SSSWTool.Project
 ---@param path string
----@param ast SelenScript.ASTNodeSource # Any changes to the AST will be cached!
+---@param ast SelenScript.ASTNodes.Source # Any changes to the AST will be cached!
 ---@param errors any
 ---@param comments any
 function BuildActions.post_parse(multiproject, project, path, ast, errors, comments)
@@ -61,7 +61,7 @@ end
 --- Called after everything is parsed (or loaded from cache) and has been transformed.  
 ---@param multiproject SSSWTool.MultiProject
 ---@param project SSSWTool.Project
----@param ast SelenScript.ASTNodeSource # This is the fully combined output after all transformers has run (including the combiner and tracing).
+---@param ast SelenScript.ASTNodes.Source # This is the fully combined output after all transformers has run (including the combiner and tracing).
 function BuildActions.post_transform(multiproject, project, ast)
 end
 
