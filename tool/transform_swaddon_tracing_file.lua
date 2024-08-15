@@ -1,16 +1,12 @@
-local modpath = ...
-
 local AVPath = require "avpath"
 
 local Utils = require "SelenScript.utils"
 local ASTHelpers = require "SelenScript.transformer.ast_helpers"
-local relabel = require "relabel"
 local ASTNodes = ASTHelpers.Nodes
 local Emitter = require "SelenScript.emitter.emitter"
 local AST = require "SelenScript.parser.ast"
 
----@diagnostic disable-next-line: param-type-mismatch
-local TRACING_PREFIX_SRC_FILE = AVPath.join{package.searchpath(modpath, package.path), "../src/tracing.lua"}
+local TracingPostDefs = require "tool.transform_swaddon_tracing_post"
 
 
 --- Used for converting AST nodes into strings
@@ -23,6 +19,7 @@ local SPECIAL_NAME = "SSSW_DBG"
 ---@class SelenScript.ASTNodes.Source
 ---@field _has_onTick true?
 ---@field _has_httpReply true?
+---@field _traces_info SSSWTool.Transformer_Tracing_File.TraceInfo[]?
 
 ---@class SelenScript.ASTNodes.funcbody
 ---@field _is_traced true?
@@ -31,7 +28,16 @@ local SPECIAL_NAME = "SSSW_DBG"
 ---@field _is_traced true?
 
 
----@class SSSWTool.Transformer_Tracing : SSSWTool.Transformer
+---@class SSSWTool.Transformer_Tracing_File.TraceInfo
+---@field node SelenScript.ASTNodes.Node
+---@field name string
+---@field start_line integer
+---@field start_column integer
+---@field local_file_path string
+---@field swdbg_id_node SelenScript.ASTNodes.numeral
+
+
+---@class SSSWTool.Transformer_Tracing_File : SSSWTool.Transformer
 local TransformerDefs = {}
 
 
@@ -52,144 +58,20 @@ function TransformerDefs:_get_root_source(node)
 end
 
 ---@param node SelenScript.ASTNodes.Node
----@return SelenScript.ASTNodes.Source
-function TransformerDefs:_ensure_tracingblock(node)
-	local source = self:_get_root_source(node)
-	assert(source ~= nil, "source ~= nil")
-	if not self._SWAddon_TracingBlock then
-		self._SWAddon_TracingBlock = ASTNodes.block(source)
-		local ast, errors, comments = self.parser:parse(Utils.readFile(TRACING_PREFIX_SRC_FILE), "<SSSWTOOL>/src/tracing.lua")
-		if #errors > 0 then
-			print_error("-- Parse Errors: " .. #errors .. " --")
-			for _, v in ipairs(errors) do
-				print_error(v.id .. ": " .. v.msg)
-			end
-			os.exit(-1)
-		end
-		local block = self._SWAddon_TracingBlock
-		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#region SSSWTool-Tracing-src"))
-		table.insert(block, #block+1, ast)
-		table.insert(block, #block+1, ASTNodes.assign(
-			node, nil,
-			ASTNodes.varlist(node, ASTNodes.index(
-				node, nil, ASTNodes.name(node, SPECIAL_NAME),
-				ASTNodes.index(
-					node, ".", ASTNodes.name(node, "level")
-				)
-			)),
-			ASTNodes.expressionlist(node, ASTNodes.string(node, self.config == "full" and "full" or "simple"))
-		))
-		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#endregion"))
-		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#region SSSWTool-Tracing-info"))
-		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#endregion"))
-		table.insert(source.block.block, 1, block)
-	end
-	return source
-end
-
----@param node SelenScript.ASTNodes.Node
 ---@param name string
 ---@param start_line integer
 ---@param start_column integer
 ---@param local_file_path string
 function TransformerDefs:_add_trace_info(node, name, start_line, start_column, local_file_path)
-	self:_ensure_tracingblock(node)
-	-- Omitted +1 to be above the `--#endregion` comment
-	table.insert(self._SWAddon_TracingBlock, #self._SWAddon_TracingBlock, ASTNodes.assign(
-		node, nil,
-		ASTNodes.varlist(node, ASTNodes.index(
-			node, nil, ASTNodes.name(node, SPECIAL_NAME),
-			ASTNodes.index(
-				node, ".", ASTNodes.name(node, "_info"),
-				ASTNodes.index(node, "[", ASTNodes.numeral(node, tostring(self._swdbg_index)))
-			)
-		)),
-		ASTNodes.expressionlist(node, ASTNodes.table(node, ASTNodes.fieldlist(node,
-			ASTNodes.field(node, ASTNodes.string(node, "name"), ASTNodes.string(node, Utils.escape_escape_sequences(name))),
-			ASTNodes.field(node, ASTNodes.string(node, "line"), ASTNodes.numeral(node, tostring(start_line))),
-			ASTNodes.field(node, ASTNodes.string(node, "column"), ASTNodes.numeral(node, tostring(start_column))),
-			ASTNodes.field(node, ASTNodes.string(node, "file"), ASTNodes.string(node, local_file_path))
-		)))
-	))
-end
-
-
----@param node SelenScript.ASTNodes.Source
-function TransformerDefs:source(node)
-	local root_source = assert(self:_get_root_source(node), "root_source_node ~= nil")
-	self:_ensure_tracingblock(root_source)
-	-- Transforming is depth-first.
-	-- So, if `node == root_source` then we have finish transforming everything and can check if onTick or httpReply is missing.
-	if node == root_source then
-		local block = self._SWAddon_TracingBlock
-		if not root_source._has_onTick then
-			print_info("Missing onTick callback, one has been created for tracing.")
-			table.insert(block, ASTNodes.assign(
-				block, nil,
-				ASTNodes.varlist(block, ASTNodes.index(block, nil, ASTNodes.name(block, "onTick"))),
-				ASTNodes.expressionlist(block, ASTNodes["function"](block, ASTNodes.funcbody(block,
-					ASTNodes.parlist(block, ASTNodes.var_args(block)),
-					ASTNodes.block(block, self:_generate_onTick_code(block))
-				)))
-			))
-			root_source._has_onTick = true
-		end
-		if not root_source._has_httpReply then
-			print_info("Missing httpReply callback, one has been created for tracing.")
-			table.insert(block, ASTNodes.assign(
-				block, nil,
-				ASTNodes.varlist(block, ASTNodes.index(block, nil, ASTNodes.name(block, "httpReply"))),
-				ASTNodes.expressionlist(block, ASTNodes["function"](block, ASTNodes.funcbody(block,
-					ASTNodes.parlist(block, ASTNodes.var_args(block)),
-					ASTNodes.block(block, self:_generate_httpReply_code(block))
-				)))
-			))
-			root_source._has_httpReply = true
-		end
-	end
-	return node
-end
-
----@param node SelenScript.ASTNodes.Node
----@return SelenScript.ASTNodes.Node
-function TransformerDefs:_generate_onTick_code(node)
-	return ASTNodes.block(node,
-			ASTNodes.index(
-				node, nil, ASTNodes.name(node, SPECIAL_NAME),
-				ASTNodes.index(
-					node, ".", ASTNodes.name(node, "check_stack"),
-					ASTNodes.call(node, ASTNodes.expressionlist(node, ASTNodes.index(
-						node, nil, ASTNodes.name(node, SPECIAL_NAME),
-						ASTNodes.index(
-							node, ".", ASTNodes.name(node, "expected_stack_onTick")
-						)
-					)))
-				)
-			),
-			ASTNodes.index(
-				node, nil, ASTNodes.name(node, SPECIAL_NAME),
-				ASTNodes.index(
-					node, ".", ASTNodes.name(node, "_sendCheckStackHttp"),
-					ASTNodes.call(node, ASTNodes.expressionlist(node))
-				)
-			)
-		)
-end
-
----@param node SelenScript.ASTNodes.Node
----@return SelenScript.ASTNodes.Node
-function TransformerDefs:_generate_httpReply_code(node)
-	return ASTNodes["if"](
-			node,
-			ASTNodes.index(
-				node, nil, ASTNodes.name(node, SPECIAL_NAME),
-				ASTNodes.index(
-					node, ".", ASTNodes.name(node, "_handleHttp"),
-					ASTNodes.call(node, ASTNodes.var_args(node))
-				)
-			),
-			ASTNodes.block(node, ASTNodes["return"](node, ASTNodes.expressionlist(node)))
-		)
+	local source_node = assert(self:find_parent_of_type(node, "source"), "root_source ~= nil")
+	---@cast source_node SelenScript.ASTNodes.Source
+	source_node._traces_info = source_node._traces_info or {}
+	local swdbg_id_node = ASTNodes.numeral(node, "-1")
+	table.insert(source_node._traces_info, {
+		node = node, name = name, start_line = start_line, start_column = start_column, local_file_path = local_file_path,
+		swdbg_id_node = swdbg_id_node,
+	})
+	return swdbg_id_node
 end
 
 ---@param node SelenScript.ASTNodes.funcbody
@@ -216,10 +98,10 @@ function TransformerDefs:funcbody(node)
 			return node
 		elseif parent_node.scope ~= "local" then
 			if name == "onTick" then
-				prepend_node = self:_generate_onTick_code(node)
+				prepend_node = TracingPostDefs._generate_onTick_code(self, node)
 				root_source._has_onTick = true
 			elseif name == "httpReply" then
-				prepend_node = self:_generate_httpReply_code(node)
+				prepend_node = TracingPostDefs._generate_httpReply_code(self, node)
 				root_source._has_httpReply = true
 			end
 		end
@@ -236,10 +118,10 @@ function TransformerDefs:funcbody(node)
 					name = emitter:generate(name_node)
 					if parent_assign_node.scope ~= "local" then
 						if name == "onTick" then
-							prepend_node = self:_generate_onTick_code(node)
+							prepend_node = TracingPostDefs._generate_onTick_code(self, node)
 							root_source._has_onTick = true
 						elseif name == "httpReply" then
-							prepend_node = self:_generate_httpReply_code(node)
+							prepend_node = TracingPostDefs._generate_httpReply_code(self, node)
 							root_source._has_httpReply = true
 						end
 					end
@@ -247,9 +129,8 @@ function TransformerDefs:funcbody(node)
 			end
 		end
 	end
-	self._swdbg_index = self._swdbg_index and self._swdbg_index + 1 or 1
 	if name == nil then
-		name = "anonymous:"..self._swdbg_index
+		name = "anonymous:<FILL_TRACE_ID>"
 	end
 	local local_source_node = self:find_parent_of_type(node, "source")
 	assert(local_source_node ~= nil, "local_source_node ~= nil")
@@ -262,7 +143,7 @@ function TransformerDefs:funcbody(node)
 			local_file_path = AVPath.relative(local_source_node.file, self.multiproject.project_path)
 		end
 	end
-	self:_add_trace_info(node, name, start_line, start_column, local_file_path:gsub("<", "{"):gsub(">", "}"))
+	local swdbg_id_node = self:_add_trace_info(node, name, start_line, start_column, local_file_path:gsub("<", "{"):gsub(">", "}"))
 
 	local newblock = ASTNodes.block(node,
 		ASTNodes["return"](node, ASTNodes.expressionlist(
@@ -274,7 +155,7 @@ function TransformerDefs:funcbody(node)
 					ASTNodes.call(
 						node, ASTNodes.expressionlist(
 							node,
-							ASTNodes.numeral(node, tostring(self._swdbg_index)),
+							swdbg_id_node,
 							ASTNodes["function"](node, node),
 							ASTNodes.var_args(node)
 						)
@@ -329,7 +210,6 @@ function TransformerDefs:block(node)
 				local_file_path = AVPath.relative(source.file, self.multiproject.project_path)
 			end
 		end
-		self._swdbg_index = self._swdbg_index and self._swdbg_index + 1 or 1
 		local name = "stmt_"..child.type
 		if child.type == "index" then
 			---@cast child SelenScript.ASTNodes.index
@@ -343,7 +223,7 @@ function TransformerDefs:block(node)
 			cpy.values = ASTNodes.expressionlist(child)
 			name = emitter:generate(cpy) .. " ="
 		end
-		self:_add_trace_info(node, ("`%s`"):format(name), start_line, start_column, local_file_path:gsub("<", "{"):gsub(">", "}"))
+		local swdbg_id_node = self:_add_trace_info(node, ("`%s`"):format(name), start_line, start_column, local_file_path:gsub("<", "{"):gsub(">", "}"))
 		table.insert(node, i+1, ASTNodes.index(
 			node, nil, ASTNodes.name(node, SPECIAL_NAME),
 			ASTNodes.index(
@@ -351,7 +231,7 @@ function TransformerDefs:block(node)
 				ASTNodes.call(
 					node, ASTNodes.expressionlist(
 						node,
-						ASTNodes.numeral(node, tostring(self._swdbg_index))
+						swdbg_id_node
 					)
 				)
 			)
@@ -363,7 +243,7 @@ function TransformerDefs:block(node)
 				ASTNodes.call(
 					node, ASTNodes.expressionlist(
 						node,
-						ASTNodes.numeral(node, tostring(self._swdbg_index))
+						swdbg_id_node
 					)
 				)
 			)

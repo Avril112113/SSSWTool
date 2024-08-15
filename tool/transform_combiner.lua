@@ -1,13 +1,8 @@
 local modpath = ...
 
 local AVPath = require "avpath"
-local lfs = require "lfs"
--- local MessagePack = require "MessagePack"
-local CBOR = require "cbor"
-local AVCalcLine = require "avcalcline"
 
 local Utils = require "SelenScript.utils"
-local Parser = require "SelenScript.parser.parser"
 local ASTHelpers = require "SelenScript.transformer.ast_helpers"
 local ASTNodes = ASTHelpers.Nodes
 local AST = require "SelenScript.parser.ast"  -- Used for debugging.
@@ -107,52 +102,16 @@ function TransformerDefs:index(node)
 		else
 			filepath = AVPath.norm(filepath)
 			if self.required_files[filepath] == nil then
-				local cache_dir = AVPath.join{self.multiproject.project_path, "_build", "cache"}
-				lfs.mkdir(cache_dir)
-				local cache_name = filepath:gsub("_", "__"):gsub(":", "_"):gsub("[\\/]", "_") .. ".cbor"
-				local cache_path = AVPath.join{cache_dir, cache_name}
-				---@type SelenScript.ASTNodeSource
-				local ast
-				if not self.project:call_buildaction(self.buildactions, "pre_file", filepath) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
-				if AVPath.exists(cache_path) and lfs.attributes(filepath, "modification") < lfs.attributes(cache_path, "modification") then
-					print_info(("Cache read '%s'"):format(filepath_local))
-					local packed = Utils.readFile(cache_path, true)
-					local ok, unpacked = pcall(CBOR.decode, packed)
-					if ok then
-						ast = unpacked
-						---@cast ast SelenScript.ASTNodeSource
-						ast.calcline = Parser._source_calcline
-					else
-						print_warn("Failed to load cached AST: " .. tostring(unpacked))
-						pcall(os.remove, cache_path)
-					end
-				end
-				if ast == nil then
-					print_info(("Parsing '%s'"):format(filepath_local))
-					if not self.project:call_buildaction(self.buildactions, "pre_parse", filepath) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
-					local errors, comments
-					ast, errors, comments = self.parser:parse(Utils.readFile(filepath), filepath)
-					if #errors > 0 then
-						print_error("-- Parse Errors: " .. #errors .. " --")
-						for _, v in ipairs(errors) do
-							print_error(v.id .. ": " .. v.msg)
-						end
-						self.required_files[filepath] = false
-						return node
-					end
-					if not self.project:call_buildaction(self.buildactions, "post_parse", filepath, ast, errors, comments) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
-					local cpy = Utils.shallowcopy(ast)
-					cpy.calcline = nil
-					local packed = CBOR.encode(cpy)
-					Utils.writeFile(cache_path, packed, true)
-				end
-				if not self.project:call_buildaction(self.buildactions, "post_file", filepath, ast) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
+				local ast, comments, errors = self.project:parse_file(self.parser, self.buildactions, filepath)
+				if not ast then error(("Failed to parse '%s'"):format(filepath)) end
+				---@cast ast SelenScript.ASTNodes.block # Temporary conversion
 				self:_add_require(
 					call_node,
 					ASTNodes["function"](ast, ASTNodes.funcbody(ast, ASTNodes.expressionlist(ast, ASTNodes.var_args(ast)), ast)),
 					modpath,
 					filepath_local
 				)
+				---@cast ast SelenScript.ASTNodes.Source
 				self.required_files[filepath] = ast
 				-- Done last to ensure no recursive issues.
 				self:visit(ast)
