@@ -221,20 +221,26 @@ end
 
 ---@param parser SelenScript.Parser
 ---@param buildactions SSSWTool.BuildActions?
----@param proejct_file_path string
-function Project:parse_file(parser, buildactions, proejct_file_path)
+---@param file_path string
+function Project:parse_file(parser, buildactions, file_path)
 	---@class SelenScript.ASTNodes.Source
 	---@field _transformers {[string]:true}?
 
-	print_info(("  '%s'"):format(proejct_file_path))
+	local project_file_path
+	if AVPath.getabs(file_path) then
+		project_file_path = file_path
+	else
+		project_file_path = AVPath.relative(file_path, self.multiproject.project_path)
+	end
+	print_info(("  '%s'"):format(project_file_path))
 
-	if not self:call_buildaction(buildactions, "pre_file", proejct_file_path) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
+	if not self:call_buildaction(buildactions, "pre_file", file_path) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
 
 	local cache_dir = AVPath.join{self.multiproject.project_path, "_build", "cache"}
 	lfs.mkdir(cache_dir)
-	local cache_name = proejct_file_path:gsub("_", "__"):gsub(":", "_"):gsub("[\\/]", "_") .. ".amf3"
+	local cache_name = file_path:gsub("_", "__"):gsub(":", "_"):gsub("[\\/]", "_") .. ".amf3"
 	local cache_path = AVPath.join{cache_dir, cache_name}
-	local use_cached = AVPath.exists(cache_path) and lfs.attributes(proejct_file_path, "modification") < lfs.attributes(cache_path, "modification")
+	local use_cached = AVPath.exists(cache_path) and lfs.attributes(file_path, "modification") < lfs.attributes(cache_path, "modification")
 
 	---@type SelenScript.ASTNodes.Source?, SelenScript.Error[], (SelenScript.ASTNodes.LineComment|SelenScript.ASTNodes.LongComment)[]
 	local ast, errors, comments
@@ -261,22 +267,22 @@ function Project:parse_file(parser, buildactions, proejct_file_path)
 
 	if ast == nil then
 		print_info("Parsing...")
-		if not self:call_buildaction(buildactions, "pre_parse", proejct_file_path) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
+		if not self:call_buildaction(buildactions, "pre_parse", file_path) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
 
-		ast, errors, comments = parser:parse(Utils.readFile(proejct_file_path), proejct_file_path)
+		ast, errors, comments = parser:parse(Utils.readFile(file_path), file_path)
 		if #errors > 0 then
 			print_error("-- Parse Errors: " .. #errors .. " --")
 			for _, v in ipairs(errors) do
 				print_error(v.id .. ": " .. v.msg)
 			end
-			if not self:call_buildaction(buildactions, "post_parse", proejct_file_path, ast, errors, comments) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
+			if not self:call_buildaction(buildactions, "post_parse", file_path, ast, errors, comments) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
 			return ast, comments, errors
 		end
 
 		if not self:transform_file_ast(Project.TRANSFORM_ORDER_FILE, parser, buildactions, ast, "file") then
 			ast = nil
 		else
-			if not self:call_buildaction(buildactions, "post_parse", proejct_file_path, ast, errors, comments) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
+			if not self:call_buildaction(buildactions, "post_parse", file_path, ast, errors, comments) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
 			local cpy = Utils.shallowcopy(ast)
 			cpy._transformers = Utils.deepcopy(self.config.transformers)
 			-- local packed = .encode(cpy)
@@ -284,7 +290,7 @@ function Project:parse_file(parser, buildactions, proejct_file_path)
 			Utils.writeFile(cache_path, packed, true)
 		end
 	end
-	if not self:call_buildaction(buildactions, "post_file", proejct_file_path, ast) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
+	if not self:call_buildaction(buildactions, "post_file", file_path, ast) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
 
 	return ast, comments or {}, errors or {}
 end
