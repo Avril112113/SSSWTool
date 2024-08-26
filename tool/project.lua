@@ -246,11 +246,10 @@ function Project:parse_file(parser, buildactions, file_path)
 	local ast, errors, comments
 	if use_cached then
 		local packed = Utils.readFile(cache_path, true)
-		local ok, unpacked = pcall(AMF3.decode, packed)
+		local ok, unpacked = pcall(AMF3.decode, packed, nil, Parser.amf3_handler)
 		if ok then
 			ast = unpacked
 			---@cast ast SelenScript.ASTNodes.Source
-			ast.calcline = Parser._source_calcline
 			if not ast._transformers or not Utils.deepeq(self.config.transformers, ast._transformers) then
 				print_info("Cache outdated...")
 				ast = nil
