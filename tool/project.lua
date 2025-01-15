@@ -44,6 +44,9 @@ Project.__name = "Project"
 Project.__index = Project
 
 Project.TRANSFORMERS = {
+	magic_variables = {
+		file = require "tool.transform_magic_variables"
+	},
 	combiner = {
 		post = require "tool.transform_combiner"
 	},
@@ -55,13 +58,16 @@ Project.TRANSFORMERS = {
 --- Applied to each individual file
 Project.TRANSFORM_ORDER_FILE = {
 	"tracing",
+	"magic_variables",
 }
 --- Applied to the final ast
+--- Avoid adding these if possible, as any changes aren't cached here.
 Project.TRANSFORM_ORDER_POST = {
 	"combiner",
 	"tracing",
 }
 Project.DEFAULT_TRANSFORMERS = {
+	magic_variables = true,
 	combiner = true,
 	tracing = false,
 }
