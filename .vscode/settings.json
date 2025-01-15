@@ -18,7 +18,8 @@
 	],
 	"Lua.workspace.ignoreDir": [
 		".vscode",
-		"release"
+		"release",
+		"tool/presets/addon"
 	],
 	"json.schemas": [
 		{

@@ -125,11 +125,12 @@ return function(name)
 	local files = {
 		["ssswtool.json"] = {contents=SSSWTOOL_JSON_FMT:format(name)},
 		["script.lua"] = {contents=SCRIPT},
+		["_intellisense/ssswtool.lua"] = {replace=true, contents=PresetsUtils.read_file("addon/intellisense_ssswtool.lua")},
 		[".gitignore"] = {contents=GITIGNORE},
 		[".vscode/settings.json"] = {contents=VSCODE_SETTINGS},
 	}
 	if PresetsUtils.exists("addon/intellisense.lua") then
-		files["intellisense.lua"] = {replace=true, contents=PresetsUtils.read_file("addon/intellisense.lua")}
+		files["_intellisense/addon.lua"] = {replace=true, contents=PresetsUtils.read_file("addon/intellisense.lua")}
 	else
 		print_warn("Preset is missing 'intellisense.lua', this is likely due to automatic intellisense updates being disabled.")
 	end
