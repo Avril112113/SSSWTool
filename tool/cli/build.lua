@@ -17,6 +17,7 @@ return function(CLI)
 				print_error(err or "FAIL project ~= nil")
 				return -1
 			end
+			-- require "avflamegraph".start{}
 			multi_project:build()
 			-- TODO: Check for any projects that failed to build and return -1 if so.
 			return 0

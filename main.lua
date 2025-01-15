@@ -20,7 +20,7 @@ if not jit then
 end
 local binary_ext = jit.os == "Windows" and "dll" or "so"
 package.path = ("{TP}/?.lua;{TP}/?/init.lua;{SSP}/libs/?.lua;{SSP}/libs/?/init.lua;{SSP}/?.lua;{SSP}/?/init.lua;"):gsub("{TP}", TOOL_PATH):gsub("{SSP}", SELENSCRIPT_PATH)
-package.cpath = ("{TP}/?.{EXT};{SSP}/libs/?.{EXT};"):gsub("{TP}", TOOL_PATH):gsub("{SSP}", SELENSCRIPT_PATH):gsub("{EXT}", binary_ext)
+package.cpath = ("{TP}/?.{EXT};{SSP}/?.{EXT};{SSP}/libs/?.{EXT};"):gsub("{TP}", TOOL_PATH):gsub("{SSP}", SELENSCRIPT_PATH):gsub("{EXT}", binary_ext)
 
 local CLI = require "tool.cli"
 local AVPath = require "avpath"
@@ -28,6 +28,6 @@ AVPath.SEPERATOR = "/"
 
 local status = CLI.process(args) or 0
 -- If the LuaJIT profiler is being used, don't use os.exit as it wont print the results.
-if not package.loaded["jit.p"] then
+if not package.loaded["jit.p"] and not package.loaded["avflamegraph"] then
 	os.exit(status or 0)
 end

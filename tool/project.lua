@@ -441,7 +441,7 @@ function Project:build()
 	do
 		print_info("Emitting Lua")
 		local emitter_time_start = os.clock()
-		---@type SelenScript.LuaEmitterConfig
+		---@type SelenScript.LuaEmitterConfig|{}
 		local emitter_config = {
 			luacats_source=true,
 		}

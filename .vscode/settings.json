@@ -12,6 +12,8 @@
 	"Lua.runtime.path": [
 		"?.lua",
 		"?/init.lua",
+		"libs/?.lua",
+		"libs/?/init.lua",
 		"typing/?.lua"
 	],
 	"Lua.workspace.ignoreDir": [
