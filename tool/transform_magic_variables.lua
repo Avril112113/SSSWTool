@@ -1,11 +1,5 @@
-local modpath = ...
-
-local AVPath = require "avpath"
-
-local Utils = require "SelenScript.utils"
 local ASTNodes = require "SelenScript.parser.ast_nodes"
 local ASTNodesSpecial = require "SelenScript.parser.ast_nodes_special"
-local AST = require "SelenScript.parser.ast"  -- Used for debugging.
 
 
 ---@class SSSWTool.Transformer_MagicVariables : SSSWTool.Transformer
