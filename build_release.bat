@@ -15,6 +15,9 @@ mkdir "./release/SelenScript"
 xcopy "../SelenScript/libs" "./release/SelenScript/libs" /s /e /i
 xcopy "../SelenScript/SelenScript" "./release/SelenScript/SelenScript" /s /e /i
 
+@REM Delete dev-only libs.
+if exist "./release/SelenScript/libs/avflamegraph" rmdir "./release/SelenScript/libs/avflamegraph" /q /s
+
 @REM We include LuaJIT x64 for windows in the release.
 @REM Not everyone will have it built on their system and it takes effort to build.
 FOR /F "tokens=* USEBACKQ" %%F IN (`where luajit`) DO SET LUAJIT_PATH=%%F
