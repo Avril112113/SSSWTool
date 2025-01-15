@@ -7,7 +7,7 @@
 -- It also prevents accidential recursion with `_ENV`
 ---@class SSSW_DBG
 --- The error handler is called when any error is detected, just before the stack is cleaned up.  
---- The first argument is the top-most stack entry, which should be where the error occured.  
+--- The first argument is the top-most stack entry, which should be where the error occurred.  
 --- See https://github.com/Avril112113/SSSWTool/blob/main/tool/src/tracing.lua for accessing the stack.  
 ---@field error_handler fun(t:SSSW_DBG.INFO)?
 local SSSW_DBG = {}
@@ -97,7 +97,7 @@ function SSSW_DBG.stacktrace(depth)
 end
 
 ---@param expected string[]
----@return boolean # true when stack was to be deeper than expected and was shortend with error been logged. 
+---@return boolean # true when stack was to be deeper than expected and was shortened with error been logged. 
 function SSSW_DBG.check_stack(expected)
 	local expected_start = #expected == 0 and 0 or math.huge
 	for i=1,#SSSW_DBG._stack do

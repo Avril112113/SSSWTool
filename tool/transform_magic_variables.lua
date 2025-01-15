@@ -8,12 +8,12 @@ local ASTNodesSpecial = require "SelenScript.parser.ast_nodes_special"
 local AST = require "SelenScript.parser.ast"  -- Used for debugging.
 
 
----@class SSSWTool.Transformer_MagicVariables_File : SSSWTool.Transformer
+---@class SSSWTool.Transformer_MagicVariables : SSSWTool.Transformer
 local TransformerDefs = {}
 
 
 local MAGIC_VARIABLE_HANDLERS = {
-	---@param self SSSWTool.Transformer_MagicVariables_File
+	---@param self SSSWTool.Transformer_MagicVariables
 	---@param node SelenScript.ASTNodes.index
 	["SSSWTOOL_PROJECT_NAME"]=function(self, node)
 		return ASTNodes["string"]{
@@ -21,7 +21,7 @@ local MAGIC_VARIABLE_HANDLERS = {
 			value = self.project.config.name
 		}
 	end,
-	---@param self SSSWTool.Transformer_MagicVariables_File
+	---@param self SSSWTool.Transformer_MagicVariables
 	---@param node SelenScript.ASTNodes.index
 	["SSSWTOOL_SRC_FILE"]=function(self, node)
 		return ASTNodes["string"]{
@@ -29,7 +29,7 @@ local MAGIC_VARIABLE_HANDLERS = {
 			value = node.source.file
 		}
 	end,
-	---@param self SSSWTool.Transformer_MagicVariables_File
+	---@param self SSSWTool.Transformer_MagicVariables
 	---@param node SelenScript.ASTNodes.index
 	["SSSWTOOL_SRC_POS"]=function(self, node)
 		return ASTNodes["numeral"]{
@@ -37,7 +37,7 @@ local MAGIC_VARIABLE_HANDLERS = {
 			value = ("%s"):format(node.start)
 		}
 	end,
-	---@param self SSSWTool.Transformer_MagicVariables_File
+	---@param self SSSWTool.Transformer_MagicVariables
 	---@param node SelenScript.ASTNodes.index
 	["SSSWTOOL_SRC_LINE"]=function(self, node)
 		local line, column = node.source:calcline(node.start)
@@ -46,7 +46,7 @@ local MAGIC_VARIABLE_HANDLERS = {
 			value = ("%s"):format(line)
 		}
 	end,
-	---@param self SSSWTool.Transformer_MagicVariables_File
+	---@param self SSSWTool.Transformer_MagicVariables
 	---@param node SelenScript.ASTNodes.index
 	["SSSWTOOL_SRC_COLUMN"]=function(self, node)
 		local line, column = node.source:calcline(node.start)
@@ -55,21 +55,21 @@ local MAGIC_VARIABLE_HANDLERS = {
 			value = ("%s"):format(column)
 		}
 	end,
-	---@param self SSSWTool.Transformer_MagicVariables_Post
+	---@param self SSSWTool.Transformer_MagicVariables
 	---@param node SelenScript.ASTNodes.index
 	["SSSWTOOL_OUT_POS"]=function(self, node)
 		return ASTNodesSpecial["OutputPos"]{
 			_parent = node
 		}
 	end,
-	---@param self SSSWTool.Transformer_MagicVariables_Post
+	---@param self SSSWTool.Transformer_MagicVariables
 	---@param node SelenScript.ASTNodes.index
 	["SSSWTOOL_OUT_LINE"]=function(self, node)
 		return ASTNodesSpecial["OutputLine"]{
 			_parent = node
 		}
 	end,
-	---@param self SSSWTool.Transformer_MagicVariables_Post
+	---@param self SSSWTool.Transformer_MagicVariables
 	---@param node SelenScript.ASTNodes.index
 	["SSSWTOOL_OUT_COLUMN"]=function(self, node)
 		return ASTNodesSpecial["OutputColumn"]{
@@ -91,6 +91,7 @@ function TransformerDefs:index(node)
 			if node.index then
 				return ASTNodes["index"]{
 					_parent = node,
+					---@diagnostic disable-next-line: assign-type-mismatch
 					expr = new_node,
 					index = node.index
 				}
