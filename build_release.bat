@@ -5,6 +5,7 @@ SETLOCAL
 
 
 if exist "./release/" rmdir "./release/" /q /s
+if exist "./SSSWTool-windows.zip" del "./SSSWTool-windows.zip" /q /s
 mkdir "./release/"
 
 copy "./main.lua" "./release/main.lua"
@@ -13,6 +14,7 @@ xcopy "./tool" "./release/tool" /s /e /i
 
 mkdir "./release/SelenScript"
 xcopy "../SelenScript/libs" "./release/SelenScript/libs" /s /e /i
+del /S /q ".\release\SelenScript\libs\*.so"
 xcopy "../SelenScript/SelenScript" "./release/SelenScript/SelenScript" /s /e /i
 
 @REM Delete dev-only libs.
@@ -25,4 +27,4 @@ echo %LUAJIT_PATH%
 copy "%LUAJIT_PATH%" "./release/luajit.exe"
 copy "%LUAJIT_PATH%/../lua51.dll" "./release/lua51.dll"
 
-7za a SSSWTool.zip ./release/*
+7za a SSSWTool-windows.zip ./release/*

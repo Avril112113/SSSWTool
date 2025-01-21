@@ -6,6 +6,8 @@ local Config = require "tool.config"
 local CONFIG_PATH
 if jit.os == "Windows" then
 	CONFIG_PATH = AVPath.join{os.getenv("APPDATA"), ".ssswtool.json"}
+elseif jit.os == "Linux" then
+	CONFIG_PATH = AVPath.join{os.getenv("HOME"), ".ssswtool.json"}
 else
 	error("Unknown OS for user config path " .. jit.os)
 end
