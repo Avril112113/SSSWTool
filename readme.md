@@ -18,8 +18,8 @@ The following is what this tool provides:
 - TODO: vscode task template.  
 - TODO: Additional configurable options (changing emitter config).  
 
-Note that Linux is not supported properly yet, but should be in the future.  
-MacOS will not be officially supported, but if you have any issues feel free to make an issue on this repo.  
+Windows and Linux is officially supported.  
+MacOS may be officially supported in the future.  
 
 
 ## [Releases](https://github.com/Avril112113/SSSWTool/releases)
