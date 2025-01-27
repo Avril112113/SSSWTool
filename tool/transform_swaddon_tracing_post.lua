@@ -3,8 +3,7 @@ local modpath = ...
 local AVPath = require "avpath"
 
 local Utils = require "SelenScript.utils"
-local ASTHelpers = require "SelenScript.transformer.ast_helpers"
-local ASTNodes = ASTHelpers.Nodes
+local ASTNodes = require "SelenScript.parser.ast_nodes"
 local AST = require "SelenScript.parser.ast"
 
 ---@diagnostic disable-next-line: param-type-mismatch
@@ -40,7 +39,7 @@ function TransformerDefs:_ensure_tracingblock(node)
 	local source = self:_get_root_source(node)
 	assert(source ~= nil, "source ~= nil")
 	if not self._SWAddon_TracingBlock then
-		self._SWAddon_TracingBlock = ASTNodes.block(source)
+		self._SWAddon_TracingBlock = ASTNodes.block{_parent = source}
 		local ast, errors, comments = self.parser:parse(Utils.readFile(TRACING_PREFIX_SRC_FILE), "<SSSWTOOL>/src/tracing.lua")
 		if #errors > 0 then
 			print_error("-- Parse Errors: " .. #errors .. " --")
@@ -50,21 +49,21 @@ function TransformerDefs:_ensure_tracingblock(node)
 			os.exit(-1)
 		end
 		local block = self._SWAddon_TracingBlock
-		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#region SSSWTool-Tracing-src"))
+		table.insert(block, #block+1, ASTNodes.LineComment{_parent = source, prefix = "--", value = "#region SSSWTool-Tracing-src"})
 		table.insert(block, #block+1, ast)
-		table.insert(block, #block+1, ASTNodes.assign(
-			node, nil,
-			ASTNodes.varlist(node, ASTNodes.index(
-				node, nil, ASTNodes.name(node, SPECIAL_NAME),
-				ASTNodes.index(
-					node, ".", ASTNodes.name(node, "level")
-				)
-			)),
-			ASTNodes.expressionlist(node, ASTNodes.string(node, self.config == "full" and "full" or "simple"))
-		))
-		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#endregion"))
-		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#region SSSWTool-Tracing-info"))
-		table.insert(block, #block+1, ASTNodes.LineComment(source, "--", "#endregion"))
+		table.insert(block, #block+1, ASTNodes.assign{
+			_parent = node, scope = nil,
+			names = ASTNodes.varlist{_parent = node, ASTNodes.index{
+				_parent = node, how = nil, expr = ASTNodes.name{_parent = node, name = SPECIAL_NAME},
+				index = ASTNodes.index{
+					_parent = node, how = ".", expr = ASTNodes.name{_parent = node, name = "level"}
+				}
+			}},
+			values = ASTNodes.expressionlist{_parent = node, ASTNodes.string{_parent = node, value = self.config == "full" and "full" or "simple"}}
+		})
+		table.insert(block, #block+1, ASTNodes.LineComment{_parent = source, prefix = "--", value = "#endregion"})
+		table.insert(block, #block+1, ASTNodes.LineComment{_parent = source, prefix = "--", value = "#region SSSWTool-Tracing-info"})
+		table.insert(block, #block+1, ASTNodes.LineComment{_parent = source, prefix = "--", value = "#endregion"})
 		table.insert(source.block.block, 1, block)
 	end
 	return source
@@ -79,64 +78,64 @@ function TransformerDefs:_add_trace_info(trace_info)
 		trace_info.swdbg_id_node.value = tostring(self._sw_dbg_index)
 	end
 	local node = trace_info.node
-	table.insert(self._SWAddon_TracingBlock, #self._SWAddon_TracingBlock, ASTNodes.assign(
-		node, nil,
-		ASTNodes.varlist(node, ASTNodes.index(
-			node, nil, ASTNodes.name(node, SPECIAL_NAME),
-			ASTNodes.index(
-				node, ".", ASTNodes.name(node, "_info"),
-				ASTNodes.index(node, "[", trace_info.swdbg_id_node)
-			)
-		)),
-		ASTNodes.expressionlist(node, ASTNodes.table(node, ASTNodes.fieldlist(node,
-			ASTNodes.field(node, ASTNodes.string(node, "name"), ASTNodes.string(node, Utils.escape_escape_sequences(trace_info.name))),
-			ASTNodes.field(node, ASTNodes.string(node, "line"), ASTNodes.numeral(node, tostring(trace_info.start_line))),
-			ASTNodes.field(node, ASTNodes.string(node, "column"), ASTNodes.numeral(node, tostring(trace_info.start_column))),
-			ASTNodes.field(node, ASTNodes.string(node, "file"), ASTNodes.string(node, trace_info.local_file_path))
-		)))
-	))
+	table.insert(self._SWAddon_TracingBlock, #self._SWAddon_TracingBlock, ASTNodes.assign{
+		_parent = node, scope = nil,
+		names = ASTNodes.varlist{_parent = node, ASTNodes.index{
+			_parent = node, how = nil, expr = ASTNodes.name{_parent = node, name = SPECIAL_NAME},
+			index = ASTNodes.index{
+				_parent = node, how = ".", expr = ASTNodes.name{_parent = node, name = "_info"},
+				index = ASTNodes.index{_parent = node, how = "[", expr = trace_info.swdbg_id_node}
+			}
+		}},
+		values = ASTNodes.expressionlist{_parent = node, ASTNodes.table{_parent = node, fields = ASTNodes.fieldlist{_parent = node,
+			ASTNodes.field{_parent = node, key = ASTNodes.string{_parent = node, value = "name"}, value = ASTNodes.string{_parent = node, value = Utils.escape_escape_sequences(trace_info.name)}},
+			ASTNodes.field{_parent = node, key = ASTNodes.string{_parent = node, value = "line"}, value = ASTNodes.numeral{_parent = node, value = tostring(trace_info.start_line)}},
+			ASTNodes.field{_parent = node, key = ASTNodes.string{_parent = node, value = "column"}, value = ASTNodes.numeral{_parent = node, value = tostring(trace_info.start_column)}},
+			ASTNodes.field{_parent = node, key = ASTNodes.string{_parent = node, value = "file"}, value = ASTNodes.string{_parent = node, value = trace_info.local_file_path}}
+		}}}
+	})
 end
 
 ---@param node SelenScript.ASTNodes.Node
----@return SelenScript.ASTNodes.Node
+---@return SelenScript.ASTNodes.block
 function TransformerDefs:_generate_onTick_code(node)
-	return ASTNodes.block(node,
-			ASTNodes.index(
-				node, nil, ASTNodes.name(node, SPECIAL_NAME),
-				ASTNodes.index(
-					node, ".", ASTNodes.name(node, "check_stack"),
-					ASTNodes.call(node, ASTNodes.expressionlist(node, ASTNodes.index(
-						node, nil, ASTNodes.name(node, SPECIAL_NAME),
-						ASTNodes.index(
-							node, ".", ASTNodes.name(node, "expected_stack_onTick")
-						)
-					)))
-				)
-			),
-			ASTNodes.index(
-				node, nil, ASTNodes.name(node, SPECIAL_NAME),
-				ASTNodes.index(
-					node, ".", ASTNodes.name(node, "_sendCheckStackHttp"),
-					ASTNodes.call(node, ASTNodes.expressionlist(node))
-				)
-			)
-		)
+	return ASTNodes.block{_parent = node,
+			ASTNodes.index{
+				_parent = node, how = nil, expr = ASTNodes.name{_parent = node, name = SPECIAL_NAME},
+				index = ASTNodes.index{
+					_parent = node, how = ".", expr = ASTNodes.name{_parent = node, name = "check_stack"},
+					index = ASTNodes.call{_parent = node, args = ASTNodes.expressionlist{_parent = node, ASTNodes.index{
+						_parent = node, how = nil, expr = ASTNodes.name{_parent = node, name = SPECIAL_NAME},
+						index = ASTNodes.index{
+							_parent = node, how = ".", expr = ASTNodes.name{_parent = node, name = "expected_stack_onTick"}
+						}
+					}}}
+				}
+			},
+			ASTNodes.index{
+				_parent = node, how = nil, expr = ASTNodes.name{_parent = node, name = SPECIAL_NAME},
+				index = ASTNodes.index{
+					_parent = node, how = ".", expr = ASTNodes.name{_parent = node, name = "_sendCheckStackHttp"},
+					index = ASTNodes.call{_parent = node, args = ASTNodes.expressionlist{_parent = node}}
+				}
+			}
+		}
 end
 
 ---@param node SelenScript.ASTNodes.Node
----@return SelenScript.ASTNodes.Node
+---@return SelenScript.ASTNodes.if
 function TransformerDefs:_generate_httpReply_code(node)
-	return ASTNodes["if"](
-			node,
-			ASTNodes.index(
-				node, nil, ASTNodes.name(node, SPECIAL_NAME),
-				ASTNodes.index(
-					node, ".", ASTNodes.name(node, "_handleHttp"),
-					ASTNodes.call(node, ASTNodes.var_args(node))
-				)
-			),
-			ASTNodes.block(node, ASTNodes["return"](node, ASTNodes.expressionlist(node)))
-		)
+	return ASTNodes["if"]{
+			_parent = node,
+			condition = ASTNodes.index{
+				_parent = node, how = nil, expr = ASTNodes.name{_parent = node, name = SPECIAL_NAME},
+				index = ASTNodes.index{
+					_parent = node, how = ".", expr = ASTNodes.name{_parent = node, name = "_handleHttp"},
+					index = ASTNodes.call{_parent = node, args = ASTNodes.expressionlist{_parent = node, ASTNodes.var_args{_parent = node}}}
+				}
+			},
+			block = ASTNodes.block{_parent = node, ASTNodes["return"]{_parent = node, values = ASTNodes.expressionlist{_parent = node}}}
+		}
 end
 
 ---@param node SelenScript.ASTNodes.Source
@@ -160,26 +159,26 @@ function TransformerDefs:source(node)
 		local block = self._SWAddon_TracingBlock
 		if not root_source._has_onTick then
 			print_info("Missing onTick callback, one has been created for tracing.")
-			table.insert(block, ASTNodes.assign(
-				block, nil,
-				ASTNodes.varlist(block, ASTNodes.index(block, nil, ASTNodes.name(block, "onTick"))),
-				ASTNodes.expressionlist(block, ASTNodes["function"](block, ASTNodes.funcbody(block,
-					ASTNodes.parlist(block, ASTNodes.var_args(block)),
-					ASTNodes.block(block, self:_generate_onTick_code(block))
-				)))
-			))
+			table.insert(block, ASTNodes.assign{
+				_parent = block, scope = nil,
+				names = ASTNodes.varlist{_parent = block, ASTNodes.index{_parent = block, how = nil, expr = ASTNodes.name{_parent = block, name = "onTick"}}},
+				values = ASTNodes.expressionlist{_parent = block, ASTNodes["function"]{_parent = block, funcbody = ASTNodes.funcbody{_parent = block,
+					args = ASTNodes.parlist{_parent = block, ASTNodes.var_args{_parent = block}},
+					block = ASTNodes.block{_parent = block, self:_generate_onTick_code(block)}
+				}}}
+			})
 			root_source._has_onTick = true
 		end
 		if not root_source._has_httpReply then
 			print_info("Missing httpReply callback, one has been created for tracing.")
-			table.insert(block, ASTNodes.assign(
-				block, nil,
-				ASTNodes.varlist(block, ASTNodes.index(block, nil, ASTNodes.name(block, "httpReply"))),
-				ASTNodes.expressionlist(block, ASTNodes["function"](block, ASTNodes.funcbody(block,
-					ASTNodes.parlist(block, ASTNodes.var_args(block)),
-					ASTNodes.block(block, self:_generate_httpReply_code(block))
-				)))
-			))
+			table.insert(block, ASTNodes.assign{
+				_parent = block, how = nil,
+				names = ASTNodes.varlist{_parent = block, ASTNodes.index{_parent = block, how = nil, expr = ASTNodes.name{_parent = block, name = "httpReply"}}},
+				values = ASTNodes.expressionlist{_parent = block, ASTNodes["function"]{_parent = block, funcbody = ASTNodes.funcbody{_parent = block,
+					args = ASTNodes.parlist{_parent = block, ASTNodes.var_args{_parent = block}},
+					block = ASTNodes.block{_parent = block, self:_generate_httpReply_code(block)}
+				}}}
+			})
 			root_source._has_httpReply = true
 		end
 	end

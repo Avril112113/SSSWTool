@@ -3,8 +3,7 @@ local modpath = ...
 local AVPath = require "avpath"
 
 local Utils = require "SelenScript.utils"
-local ASTHelpers = require "SelenScript.transformer.ast_helpers"
-local ASTNodes = ASTHelpers.Nodes
+local ASTNodes = require "SelenScript.parser.ast_nodes"
 local AST = require "SelenScript.parser.ast"  -- Used for debugging.
 
 ---@diagnostic disable-next-line: param-type-mismatch
@@ -50,26 +49,26 @@ function TransformerDefs:_add_require(node, func_node, modpath, filepath)
 			os.exit(-1)
 		end
 
-		block = ASTNodes.block(source,
-			ASTNodes.LineComment(source, "--", "#region SSSWTool-Require-src"),
+		block = ASTNodes.block{_parent = source,
+			ASTNodes.LineComment{_parent = source, prefix = "--", value = "#region SSSWTool-Require-src"},
 			require_src_ast,
-			ASTNodes.LineComment(source, "--", "#endregion")
-		)
+			ASTNodes.LineComment{_parent = source, prefix = "--", value = "#endregion"}
+		}
 		self._SWAddon_RequiresBlock = block
 		table.insert(source.block.block, 1, block)
 	end
 	block = block or self._SWAddon_RequiresBlock
 	-- Using +1 to be below the `--#endregion` comment
 	-- Assign to __SSSWTOOL_MOD_TO_FILEPATH
-	table.insert(block, #block+1, ASTNodes.assign(source, nil,
-		ASTNodes.varlist(source, ASTNodes.index(source, nil, ASTNodes.name(source, "__SSSWTOOL_MOD_TO_FILEPATH"), ASTNodes.index(source, "[", ASTNodes.string(source, modpath)))),
-		ASTNodes.expressionlist(source, ASTNodes.string(source, filepath))
-	))
+	table.insert(block, #block+1, ASTNodes.assign{_parent = source, scope = nil,
+		names = ASTNodes.varlist{_parent = source, ASTNodes.index{_parent = source, how = nil, expr = ASTNodes.name{_parent = source, name = "__SSSWTOOL_MOD_TO_FILEPATH"}, index = ASTNodes.index{_parent = source, how = "[", expr = ASTNodes.string{_parent = source, value = modpath}}}},
+		values = ASTNodes.expressionlist{_parent = source, ASTNodes.string{_parent = source, value = filepath}}
+	})
 	-- Assign to __SSSWTOOL_REQUIRES
-	table.insert(block, #block+1, ASTNodes.assign(source, nil,
-		ASTNodes.varlist(source, ASTNodes.index(source, nil, ASTNodes.name(source, "__SSSWTOOL_REQUIRES"), ASTNodes.index(source, "[", ASTNodes.string(source, modpath)))),
-		ASTNodes.expressionlist(source, func_node)
-	))
+	table.insert(block, #block+1, ASTNodes.assign{_parent = source, scope = nil,
+		names = ASTNodes.varlist{_parent = source, ASTNodes.index{_parent = source, how = nil, expr = ASTNodes.name{_parent = source, name = "__SSSWTOOL_REQUIRES"}, index = ASTNodes.index{_parent = source, how = "[", expr = ASTNodes.string{_parent = source, value = modpath}}}},
+		values = ASTNodes.expressionlist{_parent = source, func_node}
+	})
 end
 
 
@@ -98,7 +97,7 @@ function TransformerDefs:index(node)
 		self.required_files = self.required_files or {}
 		if err or not filepath then
 			print_error(("Failed to find '%s'%s"):format(modpath, err))
-			return ASTNodes.LongComment(node, nil, ("Failed to find '%s'"):format(modpath))
+			return ASTNodes.LongComment{_parent = node, value = ("Failed to find '%s'"):format(modpath)}
 		else
 			filepath = AVPath.norm(filepath)
 			if self.required_files[filepath] == nil then
@@ -107,7 +106,10 @@ function TransformerDefs:index(node)
 				---@cast ast SelenScript.ASTNodes.block # Temporary conversion
 				self:_add_require(
 					call_node,
-					ASTNodes["function"](ast, ASTNodes.funcbody(ast, ASTNodes.expressionlist(ast, ASTNodes.var_args(ast)), ast)),
+					ASTNodes["function"]{_parent = ast, funcbody = ASTNodes.funcbody{_parent = ast,
+						args = ASTNodes.parlist{_parent = ast, ASTNodes.var_args{_parent = ast}},
+						block = ASTNodes.block{_parent = ast, ast}
+					}},
 					modpath,
 					filepath_local
 				)

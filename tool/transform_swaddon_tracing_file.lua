@@ -1,8 +1,7 @@
 local AVPath = require "avpath"
 
 local Utils = require "SelenScript.utils"
-local ASTHelpers = require "SelenScript.transformer.ast_helpers"
-local ASTNodes = ASTHelpers.Nodes
+local ASTNodes = require "SelenScript.parser.ast_nodes"
 local Emitter = require "SelenScript.emitter.emitter"
 local AST = require "SelenScript.parser.ast"
 
@@ -66,7 +65,7 @@ function TransformerDefs:_add_trace_info(node, name, start_line, start_column, l
 	local source_node = assert(self:find_parent_of_type(node, "source"), "root_source ~= nil")
 	---@cast source_node SelenScript.ASTNodes.Source
 	source_node._traces_info = source_node._traces_info or {}
-	local swdbg_id_node = ASTNodes.numeral(node, "-1")
+	local swdbg_id_node = ASTNodes.numeral{ _parent = node, value = "-1" }
 	table.insert(source_node._traces_info, {
 		node = node, name = name, start_line = start_line, start_column = start_column, local_file_path = local_file_path,
 		swdbg_id_node = swdbg_id_node,
@@ -145,33 +144,33 @@ function TransformerDefs:funcbody(node)
 	end
 	local swdbg_id_node = self:_add_trace_info(node, name, start_line, start_column, local_file_path:gsub("<", "{"):gsub(">", "}"))
 
-	local newblock = ASTNodes.block(node,
-		ASTNodes["return"](node, ASTNodes.expressionlist(
-			node,
-			ASTNodes.index(
-				node, nil, ASTNodes.name(node, SPECIAL_NAME),
-				ASTNodes.index(
-					node, ".", ASTNodes.name(node, "_trace_func"),
-					ASTNodes.call(
-						node, ASTNodes.expressionlist(
-							node,
+	local newblock = ASTNodes.block{_parent = node,
+		ASTNodes["return"]{_parent = node, values = ASTNodes.expressionlist{
+			_parent = node,
+			ASTNodes.index{
+				_parent = node, how = nil, expr = ASTNodes.name{_parent = node, name = SPECIAL_NAME},
+				index = ASTNodes.index{
+					_parent = node, how = ".", expr = ASTNodes.name{_parent = node, name = "_trace_func"},
+					index = ASTNodes.call{
+						_parent = node, args = ASTNodes.expressionlist{
+							_parent = node,
 							swdbg_id_node,
-							ASTNodes["function"](node, node),
-							ASTNodes.var_args(node)
-						)
-					)
-				)
-			)
-		))
-	)
+							ASTNodes["function"]{_parent = node, funcbody = node},
+							ASTNodes.var_args{_parent = node}
+						}
+					}
+				}
+			}
+		}}
+	}
 	if prepend_node then
 		table.insert(newblock, 1, prepend_node)
 	end
-	return ASTNodes.funcbody(
-		node,
-		ASTNodes.varlist(node, ASTNodes.var_args(node)),
-		newblock
-	)
+	return ASTNodes.funcbody{
+		_parent = node,
+		args = ASTNodes.parlist{_parent = node, ASTNodes.var_args{_parent = node}},
+		block = newblock
+	}
 end
 
 local WHITELIST_STMT_TYPES = {
@@ -220,34 +219,34 @@ function TransformerDefs:block(node)
 		elseif child.type == "assign" then
 			---@cast child SelenScript.ASTNodes.assign
 			local cpy = Utils.shallowcopy(child)
-			cpy.values = ASTNodes.expressionlist(child)
+			cpy.values = ASTNodes.expressionlist{_parent = child}
 			name = emitter:generate(cpy) .. " ="
 		end
 		local swdbg_id_node = self:_add_trace_info(node, ("`%s`"):format(name), start_line, start_column, local_file_path:gsub("<", "{"):gsub(">", "}"))
-		table.insert(node, i+1, ASTNodes.index(
-			node, nil, ASTNodes.name(node, SPECIAL_NAME),
-			ASTNodes.index(
-				node, ".", ASTNodes.name(node, "_trace_exit"),
-				ASTNodes.call(
-					node, ASTNodes.expressionlist(
-						node,
+		table.insert(node, i+1, ASTNodes.index{
+			_parent = node, how = nil, expr = ASTNodes.name{_parent = node, name = SPECIAL_NAME},
+			index = ASTNodes.index{
+				_parent = node, how = ".", expr = ASTNodes.name{_parent = node, name = "_trace_exit"},
+				index = ASTNodes.call{
+					_parent = node, args = ASTNodes.expressionlist{
+						_parent = node,
 						swdbg_id_node
-					)
-				)
-			)
-		))
-		table.insert(node, i, ASTNodes.index(
-			node, nil, ASTNodes.name(node, SPECIAL_NAME),
-			ASTNodes.index(
-				node, ".", ASTNodes.name(node, "_trace_enter"),
-				ASTNodes.call(
-					node, ASTNodes.expressionlist(
-						node,
+					}
+				}
+			}
+		})
+		table.insert(node, i, ASTNodes.index{
+			_parent = node, how = nil, expr = ASTNodes.name{_parent = node, name = SPECIAL_NAME},
+			index = ASTNodes.index{
+				_parent = node, how = ".", expr = ASTNodes.name{_parent = node, name = "_trace_enter"},
+				index = ASTNodes.call{
+					_parent = node, args = ASTNodes.expressionlist{
+						_parent = node,
 						swdbg_id_node
-					)
-				)
-			)
-		))
+					}
+				}
+			}
+		})
 		::continue::
 	end
 

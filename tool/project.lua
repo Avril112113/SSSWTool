@@ -6,7 +6,7 @@ local Parser = require "SelenScript.parser.parser"
 local Transformer = require "SelenScript.transformer.transformer"
 local Emitter = require "SelenScript.emitter.emitter"
 local Utils = require "SelenScript.utils"
-local ASTHelpers = require "SelenScript.transformer.ast_helpers"
+local ASTNodes = require "SelenScript.parser.ast_nodes"
 local AST = require "SelenScript.parser.ast"
 
 local UserConfig = require "tool.userconfig"
@@ -440,7 +440,12 @@ function Project:build()
 	do
 		-- Add comment at beginning of file to disable all diagnostics of the file.
 		-- This isn't required but is nice to have.
-		table.insert(ast.block.block, 1, ASTHelpers.Nodes.LineComment(ast.block.block, "---", "@diagnostic disable"))
+		-- table.insert(ast.block.block, 1, ASTHelpers.Nodes.LineComment(ast.block.block, "---", "@diagnostic disable"))
+		table.insert(ast.block.block, 1, ASTNodes.LineComment{
+			_parent = ast.block.block,
+			prefix = "---",
+			value = "@diagnostic disable",
+		})
 	end
 
 	local script_out
