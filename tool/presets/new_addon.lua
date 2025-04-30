@@ -46,6 +46,7 @@ local GITIGNORE = [[
 
 local VSCODE_SETTINGS = [[
 {
+	"Lua.workspace.useGitIgnore": true,
 	"Lua.runtime.version": "Lua 5.3",
 	"Lua.runtime.pathStrict": true,
 	"Lua.workspace.checkThirdParty": false,
