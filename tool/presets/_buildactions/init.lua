@@ -1,11 +1,11 @@
--- WARNING: Ensure only trusted code it put here!
+-- WARNING: Ensure only trusted code is put here!
 -- Build actions are powerful, they run within SSSWTool and as such has the same capabilities.
 -- With that said, they can also be extremely helpful for customizing the build process and adding features for your own needs.
 --
--- Stormworks uses Lua 5.3, SSSWTool is run with LuaJIT and so are these build actions, there are some notable differences!
--- No garunentees are made about compatibility between versions of SSSWTool for build actions.
+-- Stormworks uses Lua 5.3, SSSWTool is run with LuaJIT along with these build actions, there are some notable differences!
+-- No guarantees are made about compatibility between versions of SSSWTool for build actions, however breaking changes will be avoided.
 --
--- Do not trust the 'current working directory', projects can be build from any directory.
+-- Do not trust the 'current working directory', projects can be built from any directory.
 -- Use `AVPath.join{multiproject.project_path, "some_file.txt"}` to access a file within the project reliably.
 
 
