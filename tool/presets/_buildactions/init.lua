@@ -50,7 +50,7 @@ end
 function BuildActions.post_parse(multiproject, project, path, ast, errors, comments)
 end
 
---- Called after a file is parsed sucsessfully but before it's transformed.  
+--- Called after a file is parsed successfully but before it's transformed.  
 --- Includes cached and non-cached files.  
 ---@param multiproject SSSWTool.MultiProject
 ---@param project SSSWTool.Project
