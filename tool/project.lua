@@ -154,15 +154,17 @@ function Project:ask_buildactions_whitelist()
 end
 
 ---@param path string # Project local path to file.
+---@param mode "file"|"directory"|LuaFileSystem.AttributeMode
 ---@return string, string, nil
 ---@overload fun(path:string): nil, nil, string
-function Project:findSrcFile(path)
+function Project:findSrcFile(path, mode)
+	mode = mode or "file"
 	local searched = {}
 	local function check(base)
 		local src_path = AVPath.join{base, path}
 		local full_path = AVPath.join{self.multiproject.project_path, src_path}
-		table.insert(searched, ("no file '%s'"):format(full_path))
-		if path_is(full_path, "file") then
+		table.insert(searched, ("no %s '%s'"):format(mode, full_path))
+		if path_is(full_path, mode) then
 			return full_path, src_path
 		end
 	end
