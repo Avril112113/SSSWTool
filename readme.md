@@ -24,12 +24,12 @@ MacOS may be officially supported in the future.
 
 ## [Releases](https://github.com/Avril112113/SSSWTool/releases)
 See the [releases](https://github.com/Avril112113/SSSWTool/releases) for download.  
-If you want to use `ssswtool` from anywhere, consider adding it to your PATH (the directory containing `ssswtool.bat`).  
-See [usage](#Usage) for how to use this tool.  
+If you want to easily use `ssswtool` from anywhere, consider adding it to your PATH, see the [Adding To Path](#adding-to-path) section.  
+See [usage](#Usage) below for how to use this tool.  
 
 
 ## Usage
-Requires to be run in a cmd prompt.  
+Requires to be run in a terminal (cmd or powershell or example).  
 If `ssswtool` was added to your PATH, you can use `ssswtool` directly, otherwise replace it with the path to `ssswtool.bat`.  
 
 1. Create a new project with `ssswtool new addon ./some_addon_name`.  
@@ -95,6 +95,18 @@ Multi-Project and config reference example
 	}
 ]
 ```
+
+## Adding to PATH
+Below are instructions on how to edit your PATH on Windows;  
+If you have any issues with this, google and youtube can easily help.  
+- Search for "Edit the system environment variables"  
+- Click "Environment Variables"
+- Under "User variables for ..." Select "Path" and click 'Edit'
+- Copy the path of the directory which contains `ssswtool.bat`
+- Click "New" and paste in the path
+- Click "Ok" on all 3 dialog windows
+- If a terminal was open, ensure to restart it
+- Open a terminal and test running `ssswtool` from your project directory
 
 
 ## Using build actions
