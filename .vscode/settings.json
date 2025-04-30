@@ -1,8 +1,8 @@
 {
 	"Lua.runtime.version": "LuaJIT",
 	"Lua.workspace.library": [
-		"C:/Users/avril/AppData/Roaming/Code/User/globalStorage/sumneko.lua/addonManager/addons/luafilesystem/module/library",
-		"C:/Users/avril/AppData/Roaming/Code/User/globalStorage/sumneko.lua/addonManager/addons/luasocket/module/library",
+		"${addons}/luafilesystem/module/library",
+		"${addons}/luasocket/module/library",
 		"C:/Projects/Lua/Stormworks/AvrilsSWTools/AVCmds",
 		"../SelenScript",
 		"../SelenScript/libs"
@@ -26,5 +26,8 @@
 			"fileMatch": ["ssswtool.json"],
 			"url": "./ssswtool_schema.json"
 		}
+	],
+	"Lua.diagnostics.globals": [
+		"lfs"
 	]
 }
