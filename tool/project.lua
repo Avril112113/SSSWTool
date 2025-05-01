@@ -13,10 +13,10 @@ local UserConfig = require "tool.userconfig"
 
 
 ---@param path string
----@param mode LuaFileSystem.AttributeMode
+---@param mode "file or directory"|LuaFileSystem.AttributeMode
 local function path_is(path, mode)
 	local attributes = lfs.attributes(path)
-	return attributes ~= nil and attributes.mode == mode
+	return attributes ~= nil and (attributes.mode == mode or (mode == "file or directory" and (mode == "file" or mode == "directory")))
 end
 
 
@@ -154,7 +154,7 @@ function Project:ask_buildactions_whitelist()
 end
 
 ---@param path string # Project local path to file.
----@param mode "file"|"directory"|LuaFileSystem.AttributeMode
+---@param mode "file"|"directory"|"file or directory"|LuaFileSystem.AttributeMode
 ---@return string, string, nil
 ---@overload fun(path:string): nil, nil, string
 function Project:findSrcFile(path, mode)
@@ -181,23 +181,23 @@ function Project:findSrcFile(path, mode)
 end
 
 ---@param modpath string # Project local mod path to file.
+---@param lua_path string? # Lua search path, default "?.lua;?/init.lua;"
 ---@return string, string, nil
----@overload fun(modpath:string): nil, nil, string
-function Project:findModFile(modpath, path)
-	path = path or "?.lua;?/init.lua;"
+---@overload fun(modpath, lua_path): nil, nil, string
+function Project:findModFile(modpath, lua_path)
+	lua_path = lua_path or "?.lua;?/init.lua;"
 	local path_parts = {}
 	local srcs = type(self.config.src) == "string" and {self.config.src} or self.config.src
 	---@cast srcs string[]
-	---@diagnostic disable-next-line: param-type-mismatch
 	for _, src in ipairs(srcs) do
 		if #src > 0 then
 			if AVPath.getabs(src) then
-				table.insert(path_parts, (path:gsub(
+				table.insert(path_parts, (lua_path:gsub(
 					"%?",
 					AVPath.join{src, "?"}
 				)))
 			else
-				table.insert(path_parts, (path:gsub(
+				table.insert(path_parts, (lua_path:gsub(
 					"%?",
 					AVPath.join{self.multiproject.project_path, src, "?"}
 				)))
@@ -207,7 +207,7 @@ function Project:findModFile(modpath, path)
 	local full_path, err = package.searchpath(modpath, table.concat(path_parts, ";"))
 	if full_path then
 		full_path = AVPath.norm(full_path)
-		local src_path = AVPath.relative(full_path, self.multiproject.project_path)
+		local src_path = AVPath.relative(AVPath.abs(full_path), AVPath.abs(self.multiproject.project_path))
 		return full_path, src_path, nil
 	end
 	return nil, nil, err
