@@ -45,8 +45,8 @@ end
 ---@param project SSSWTool.Project
 ---@param path string
 ---@param ast SelenScript.ASTNodes.Source # Any changes to the AST will be cached!
----@param errors any
----@param comments any
+---@param errors SelenScript.Error[]
+---@param comments (SelenScript.ASTNodes.LineComment|SelenScript.ASTNodes.LongComment)[]
 function BuildActions.post_parse(multiproject, project, path, ast, errors, comments)
 end
 
