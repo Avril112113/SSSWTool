@@ -29,5 +29,8 @@
 	],
 	"Lua.diagnostics.globals": [
 		"lfs"
+	],
+	"cSpell.words": [
+		"modpath"
 	]
 }

@@ -40,7 +40,7 @@ function TransformerDefs:_ensure_tracingblock(node)
 	assert(source ~= nil, "source ~= nil")
 	if not self._SWAddon_TracingBlock then
 		self._SWAddon_TracingBlock = ASTNodes.block{_parent = source}
-		local ast, errors, comments = self.parser:parse(Utils.readFile(TRACING_PREFIX_SRC_FILE), "<SSSWTOOL>/src/tracing.lua")
+		local ast, errors, comments = self.parser_factory():parse(Utils.readFile(TRACING_PREFIX_SRC_FILE), "<SSSWTOOL>/src/tracing.lua")
 		if #errors > 0 then
 			print_error("-- Parse Errors: " .. #errors .. " --")
 			for _, v in ipairs(errors) do

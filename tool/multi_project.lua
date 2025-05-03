@@ -1,16 +1,15 @@
 local Utils = require "SelenScript.utils"
 local AVPath = require "avpath"
 
+local MultiProjectShadow = require "tool.multiproject_shadow"
 local Config = require "tool.config"
 local Project = require "tool.project"
 
 
----@class SSSWTool.MultiProject
----@field config_path string # Normalized path to the project config file.
----@field project_path string # Normalized path to the project.
----@field projects (SSSWTool.Project|SSSWTool.MultiProject)[]
+---@class SSSWTool.MultiProject : SSSWTool.MultiProjectShadow
 ---@field config SSSWTool.Config
-local MultiPorject = {}
+---@field projects (SSSWTool.Project|SSSWTool.MultiProject)[]
+local MultiPorject = Utils.shallowcopy(MultiProjectShadow)
 MultiPorject.__name = "MultiPorject"
 MultiPorject.__index = MultiPorject
 

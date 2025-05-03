@@ -21,6 +21,9 @@ end
 local binary_ext = jit.os == "Windows" and "dll" or "so"
 package.path = ("{TP}/?.lua;{TP}/?/init.lua;{SSP}/libs/?.lua;{SSP}/libs/?/init.lua;{SSP}/?.lua;{SSP}/?/init.lua;"):gsub("{TP}", TOOL_PATH):gsub("{SSP}", SELENSCRIPT_PATH)
 package.cpath = ("{TP}/?.{EXT};{SSP}/?.{EXT};{SSP}/libs/?.{EXT};"):gsub("{TP}", TOOL_PATH):gsub("{SSP}", SELENSCRIPT_PATH):gsub("{EXT}", binary_ext)
+-- package.path = package.path .. "C:\\Users\\avril\\AppData\\Roaming\\luajit\\?.lua;"
+
+require "lanes".configure()
 
 local CLI = require "tool.cli"
 local AVPath = require "avpath"
