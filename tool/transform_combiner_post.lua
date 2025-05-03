@@ -86,7 +86,10 @@ function TransformerDefs:_add_require(ast, func_node, modpath, filepath)
 		values = ASTNodes.expressionlist{_parent = source, func_node}
 	})
 
+	-- TODO: Sorting this every time we add a new require is probably inefficient...
 	table.sort(requires_block, function(a, b)
+		assert(a)
+		assert(b)
 		local aname = a.names[1].index.expr.value
 		local bname = b.names[1].index.expr.value
 		if aname == bname then
