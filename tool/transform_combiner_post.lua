@@ -64,24 +64,13 @@ function TransformerDefs:_add_require(ast, func_node, modpath, filepath)
 	local requires_block = block[#block]
 	---@cast requires_block SelenScript.ASTNodes.block
 	
-	local insert_pos = 1
-	-- for i,v in ipairs(requires_block) do
-	-- 	insert_pos = i+2
-	-- 	if v.type == "assign" and v.values[1].type == "string" then
-	-- 		if v.values[1].value < filepath then
-	-- 			break
-	-- 		end
-	-- 	end
-	-- end
-	-- print(insert_pos, filepath)
-	
 	-- Assign to __SSSWTOOL_MOD_TO_FILEPATH
-	table.insert(requires_block, insert_pos, ASTNodes.assign{_parent = source, scope = nil,
+	table.insert(requires_block, ASTNodes.assign{_parent = source, scope = nil,
 		names = ASTNodes.varlist{_parent = source, ASTNodes.index{_parent = source, how = nil, expr = ASTNodes.name{_parent = source, name = "__SSSWTOOL_MOD_TO_FILEPATH"}, index = ASTNodes.index{_parent = source, how = "[", expr = ASTNodes.string{_parent = source, value = modpath}}}},
 		values = ASTNodes.expressionlist{_parent = source, ASTNodes.string{_parent = source, value = filepath}}
 	})
 	-- Assign to __SSSWTOOL_REQUIRES
-	table.insert(requires_block, insert_pos+1, ASTNodes.assign{_parent = source, scope = nil,
+	table.insert(requires_block, ASTNodes.assign{_parent = source, scope = nil,
 		names = ASTNodes.varlist{_parent = source, ASTNodes.index{_parent = source, how = nil, expr = ASTNodes.name{_parent = source, name = "__SSSWTOOL_REQUIRES"}, index = ASTNodes.index{_parent = source, how = "[", expr = ASTNodes.string{_parent = source, value = modpath}}}},
 		values = ASTNodes.expressionlist{_parent = source, func_node}
 	})
