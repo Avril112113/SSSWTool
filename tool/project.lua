@@ -189,19 +189,27 @@ function Project:call_buildaction(name, ...)
 	return true
 end
 
----@param path string # Project local path to file.
+---@param path string  # Project local path to file.
 ---@param mode "file"|"directory"|"file or directory"|LuaFileSystem.AttributeMode
+---@param searchpath string?  # Lua style search path, defaults to "?" to find a real file path.
 ---@return string, string, nil
 ---@overload fun(path:string): nil, nil, string
-function Project:findSrcFile(path, mode)
+function Project:findSrcFile(path, mode, searchpath)
+	searchpath = searchpath or "?"
+	local paths = {}
+	for path_template in searchpath:gmatch("[^;]+") do
+		table.insert(paths, (path_template:gsub("%?", path)))
+	end
 	mode = mode or "file"
 	local searched = {}
 	local function check(base)
-		local src_path = AVPath.join{base, path}
-		local full_path = AVPath.join{self.multiproject.project_path, src_path}
-		table.insert(searched, ("no %s '%s'"):format(mode, full_path))
-		if path_is(full_path, mode) then
-			return full_path, src_path
+		for _, local_path in ipairs(paths) do
+			local src_path = AVPath.join{base, local_path}
+			local full_path = AVPath.join{self.multiproject.project_path, src_path}
+			table.insert(searched, ("no %s '%s'"):format(mode, full_path))
+			if path_is(full_path, mode) then
+				return full_path, src_path
+			end
 		end
 	end
 
