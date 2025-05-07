@@ -1,5 +1,5 @@
 local lfs = require "lfs"
-local AVPath = require "avpath"
+local AvPath = require "avpath"
 
 local Utils = require "SelenScript.utils"
 
@@ -86,7 +86,7 @@ return function(name)
 		local should_update_intellisense = false
 
 		local ok, err = pcall(function()
-			local intellisense_updated_time = lfs.attributes(AVPath.join{PresetsUtils.PRESETS_PATH, "addon", "intellisense.lua"}, "modification")
+			local intellisense_updated_time = lfs.attributes(AvPath.join{PresetsUtils.PRESETS_PATH, "addon", "intellisense.lua"}, "modification")
 			---@diagnostic disable-next-line: cast-type-mismatch
 			---@cast intellisense_updated_time integer?
 			if intellisense_updated_time == nil then

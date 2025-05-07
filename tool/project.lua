@@ -1,5 +1,5 @@
 local lfs = require "lfs"
-local AVPath = require "avpath"
+local AvPath = require "avpath"
 local AMF3 = require "amf3"
 
 local Parser = require "SelenScript.parser.parser"
@@ -108,7 +108,7 @@ end
 ---@param infer_name boolean
 function Project.getDefaultConfig(multiproject, infer_name)
 	return {
-		name = infer_name and AVPath.name(multiproject.project_path) or nil,
+		name = infer_name and AvPath.name(multiproject.project_path) or nil,
 		src = ".",
 		entrypoint = "script.lua",
 		transformers = Project.DEFAULT_TRANSFORMERS,
@@ -135,11 +135,11 @@ function Project:__tostring()
 end
 
 function Project:get_buildactions_init_path()
-	return AVPath.join{self.multiproject.project_path, "_buildactions", "init.lua"}
+	return AvPath.join{self.multiproject.project_path, "_buildactions", "init.lua"}
 end
 
 function Project:has_buildactions()
-	return AVPath.exists(self:get_buildactions_init_path())
+	return AvPath.exists(self:get_buildactions_init_path())
 end
 
 function Project:ask_buildactions_whitelist()
@@ -204,8 +204,8 @@ function Project:findSrcFile(path, mode, searchpath)
 	local searched = {}
 	local function check(base)
 		for _, local_path in ipairs(paths) do
-			local src_path = AVPath.join{base, local_path}
-			local full_path = AVPath.join{self.multiproject.project_path, src_path}
+			local src_path = AvPath.join{base, local_path}
+			local full_path = AvPath.join{self.multiproject.project_path, src_path}
 			table.insert(searched, ("no %s '%s'"):format(mode, full_path))
 			if path_is(full_path, mode) then
 				return full_path, src_path
@@ -235,36 +235,52 @@ function Project:findModFile(modpath, lua_path)
 	---@cast srcs string[]
 	for _, src in ipairs(srcs) do
 		if #src > 0 then
-			if AVPath.getabs(src) then
+			if AvPath.getabs(src) then
 				table.insert(path_parts, (lua_path:gsub(
 					"%?",
-					AVPath.join{src, "?"}
+					AvPath.join{src, "?"}
 				)))
 			else
 				table.insert(path_parts, (lua_path:gsub(
 					"%?",
-					AVPath.join{self.multiproject.project_path, src, "?"}
+					AvPath.join{self.multiproject.project_path, src, "?"}
 				)))
 			end
 		end
 	end
 	local full_path, err = package.searchpath(modpath, table.concat(path_parts, ";"))
 	if full_path then
-		full_path = AVPath.norm(full_path)
-		local src_path = AVPath.relative(AVPath.abs(full_path), AVPath.abs(self.multiproject.project_path))
+		full_path = AvPath.norm(full_path)
+		local src_path = AvPath.relative(AvPath.abs(full_path), AvPath.abs(self.multiproject.project_path))
 		return full_path, src_path, nil
 	end
 	return nil, nil, err
 end
 
 function Project:_set_buildactions_env()
-	local buildactions_folder = AVPath.base(self:get_buildactions_init_path())
+	local buildactions_folder = AvPath.base(self:get_buildactions_init_path())
 
 	local package_path = package.path
 	package.path = package.path .. (";%s/?.lua;%s/?/init.lua;"):format(buildactions_folder, buildactions_folder)
 	return function()
 		package.path = package_path
 	end
+end
+
+--- Utility for buildactions
+---@param source string
+function Project:parse_raw(source)
+	local parser = self:get_parser()
+	if not parser then return nil, nil end
+	local ast, errors, comments = self:get_parser():parse(source)
+	if #errors > 0 then
+		print_error("-- Parse Raw Errors: " .. #errors .. " --")
+		for _, v in ipairs(errors) do
+			print_error(v.id .. ": " .. v.msg)
+		end
+		return nil, nil
+	end
+	return ast, comments
 end
 
 ---@param parser SelenScript.Parser
@@ -274,20 +290,20 @@ function Project:parse_file(parser, file_path)
 	---@field _transformers {[string]:true}?
 
 	local project_file_path
-	if AVPath.getabs(file_path) then
+	if AvPath.getabs(file_path) then
 		project_file_path = file_path
 	else
-		project_file_path = AVPath.relative(file_path, self.multiproject.project_path)
+		project_file_path = AvPath.relative(file_path, self.multiproject.project_path)
 	end
 	print_info(("  '%s'"):format(project_file_path))
 
 	if not self:call_buildaction("pre_file", file_path) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
 
-	local cache_dir = AVPath.join{self.multiproject.project_path, "_build", "cache"}
+	local cache_dir = AvPath.join{self.multiproject.project_path, "_build", "cache"}
 	lfs.mkdir(cache_dir)
 	local cache_name = file_path:gsub("_", "__"):gsub(":", "_"):gsub("[\\/]", "_") .. ".amf3"
-	local cache_path = AVPath.join{cache_dir, cache_name}
-	local use_cached = AVPath.exists(cache_path) and lfs.attributes(file_path, "modification") < lfs.attributes(cache_path, "modification")
+	local cache_path = AvPath.join{cache_dir, cache_name}
+	local use_cached = AvPath.exists(cache_path) and lfs.attributes(file_path, "modification") < lfs.attributes(cache_path, "modification")
 
 	---@type SelenScript.ASTNodes.Source?, SelenScript.Error[], (SelenScript.ASTNodes.LineComment|SelenScript.ASTNodes.LongComment)[]
 	local ast, errors, comments
@@ -413,7 +429,7 @@ function Project:build()
 		return -1
 	end
 
-	local underscore_build_path = AVPath.join{self.multiproject.project_path, "_build"}
+	local underscore_build_path = AvPath.join{self.multiproject.project_path, "_build"}
 	lfs.mkdir(underscore_build_path)
 
 	local has_buildactions = self:has_buildactions()
@@ -475,12 +491,12 @@ function Project:build()
 				if path:match("^<SSSWTOOL>/") then
 					return path
 				end
-				return ("../%s"):format(AVPath.relative(path, self.multiproject.project_path))
+				return ("../%s"):format(AvPath.relative(path, self.multiproject.project_path))
 			end
 		})
 		print_info(("Finished emitting in %.3fs."):format(os.clock()-emitter_time_start))
 		print_info("Writing to '_build'")
-		Utils.writeFile(AVPath.join{underscore_build_path, self.config.name .. ".lua"}, script_out)
+		Utils.writeFile(AvPath.join{underscore_build_path, self.config.name .. ".lua"}, script_out)
 	end
 
 	if not self:call_buildaction("post_build") then print_error("Build stopped, see above.") return false end

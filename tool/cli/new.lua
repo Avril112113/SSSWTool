@@ -1,4 +1,4 @@
-local AVPath = require "avpath"
+local AvPath = require "avpath"
 local Utils = require "SelenScript.utils"
 local lfs = require "lfs"
 
@@ -51,20 +51,20 @@ return function(CLI)
 				print(("Excess arguments '%s'"):format(table.concat(args, " ", pos)))
 				return -1
 			end
-			path = AVPath.abs(path)
-			local name = AVPath.name(path)
+			path = AvPath.abs(path)
+			local name = AvPath.name(path)
 			local preset = PRESETS[project_type](name)
-			if not AVPath.exists(AVPath.base(path)) then
-				print(("Directory does not exist \"%s\""):format(AVPath.base(path)))
+			if not AvPath.exists(AvPath.base(path)) then
+				print(("Directory does not exist \"%s\""):format(AvPath.base(path)))
 				return -1
 			end
 			print_info(("Updating %s files for '%s' at \"%s\""):format(project_type, name, path))
-			if not AVPath.exists(path) then
+			if not AvPath.exists(path) then
 				lfs.mkdir(path)
 			end
 			for filepath, data in pairs(preset.files) do
-				local full_filepath = AVPath.join{path, filepath}
-				local already_exists = AVPath.exists(full_filepath)
+				local full_filepath = AvPath.join{path, filepath}
+				local already_exists = AvPath.exists(full_filepath)
 				if already_exists and data.replace ~= true then
 					print_warn(("Skipped '%s' as it already exists."):format(filepath))
 				else
@@ -73,7 +73,7 @@ return function(CLI)
 					else
 						print_info(("Writing '%s'."):format(filepath))
 					end
-					lfs.mkdir(AVPath.base(full_filepath))
+					lfs.mkdir(AvPath.base(full_filepath))
 					Utils.writeFile(full_filepath, data.contents)
 				end
 			end

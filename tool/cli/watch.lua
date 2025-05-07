@@ -1,6 +1,6 @@
 local ffi = require "ffi"
 local LuaNotify = require "luanotify"
-local AVPath = require "avpath"
+local AvPath = require "avpath"
 
 local MultiProject = require "tool.multi_project"
 
@@ -38,14 +38,14 @@ return function(CLI)
 					local src = project.config.src
 					if type(src) == "table" then
 						for _, v in pairs(src) do
-							if not AVPath.getabs(v) then
-								v = AVPath.join{project.multiproject.project_path, v}
+							if not AvPath.getabs(v) then
+								v = AvPath.join{project.multiproject.project_path, v}
 							end
 							table.insert(paths, v)
 						end
 					elseif type(src) == "string" then
-						if not AVPath.getabs(src) then
-							src = AVPath.join{project.multiproject.project_path, src}
+						if not AvPath.getabs(src) then
+							src = AvPath.join{project.multiproject.project_path, src}
 						end
 						table.insert(paths, src)
 					end

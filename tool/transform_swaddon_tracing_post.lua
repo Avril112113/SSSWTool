@@ -1,13 +1,13 @@
 local modpath = ...
 
-local AVPath = require "avpath"
+local AvPath = require "avpath"
 
 local Utils = require "SelenScript.utils"
 local ASTNodes = require "SelenScript.parser.ast_nodes"
 local AST = require "SelenScript.parser.ast"
 
 ---@diagnostic disable-next-line: param-type-mismatch
-local TRACING_PREFIX_SRC_FILE = AVPath.join{package.searchpath(modpath, package.path), "../src/tracing.lua"}
+local TRACING_PREFIX_SRC_FILE = AvPath.join{package.searchpath(modpath, package.path), "../src/tracing.lua"}
 
 
 local SPECIAL_NAME = "SSSW_DBG"

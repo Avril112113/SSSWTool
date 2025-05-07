@@ -1,4 +1,4 @@
-local AVPath = require "avpath"
+local AvPath = require "avpath"
 
 local Utils = require "SelenScript.utils"
 local ASTNodes = require "SelenScript.parser.ast_nodes"
@@ -137,9 +137,9 @@ function TransformerDefs:funcbody(node)
 	local local_file_path = "<UNKNOWN>"
 	if local_source_node.file then
 		if local_source_node.file:find("^<SSSWTOOL>[\\/]") then
-			local_file_path = AVPath.norm(local_source_node.file)
+			local_file_path = AvPath.norm(local_source_node.file)
 		else
-			local_file_path = AVPath.relative(local_source_node.file, self.multiproject.project_path)
+			local_file_path = AvPath.relative(local_source_node.file, self.multiproject.project_path)
 		end
 	end
 	local swdbg_id_node = self:_add_trace_info(node, name, start_line, start_column, local_file_path:gsub("<", "{"):gsub(">", "}"))
@@ -204,9 +204,9 @@ function TransformerDefs:block(node)
 		local local_file_path = "<UNKNOWN>"
 		if source.file then
 			if source.file:find("^<SSSWTOOL>[\\/]") then
-				local_file_path = AVPath.norm(source.file)
+				local_file_path = AvPath.norm(source.file)
 			else
-				local_file_path = AVPath.relative(source.file, self.multiproject.project_path)
+				local_file_path = AvPath.relative(source.file, self.multiproject.project_path)
 			end
 		end
 		local name = "stmt_"..child.type

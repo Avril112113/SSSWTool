@@ -1,13 +1,13 @@
-local AVPath = require "avpath"
+local AvPath = require "avpath"
 local jit = require "jit"
 
 local Config = require "tool.config"
 
 local CONFIG_PATH
 if jit.os == "Windows" then
-	CONFIG_PATH = AVPath.join{os.getenv("APPDATA"), ".ssswtool.json"}
+	CONFIG_PATH = AvPath.join{os.getenv("APPDATA"), ".ssswtool.json"}
 elseif jit.os == "Linux" then
-	CONFIG_PATH = AVPath.join{os.getenv("HOME"), ".ssswtool.json"}
+	CONFIG_PATH = AvPath.join{os.getenv("HOME"), ".ssswtool.json"}
 else
 	error("Unknown OS for user config path " .. jit.os)
 end
@@ -31,7 +31,7 @@ end
 
 ---@param path string
 function UserConfig.buildactions_whitelist_add(path)
-	path = AVPath.abs(path)
+	path = AvPath.abs(path)
 	local data = UserConfig._config.data
 	data["buildactions_whitelist"] = data["buildactions_whitelist"] or {}
 	if type(data["buildactions_whitelist"]) ~= "table" then
@@ -44,7 +44,7 @@ end
 
 ---@param path string
 function UserConfig.buildactions_whitelist_check(path)
-	path = AVPath.abs(path)
+	path = AvPath.abs(path)
 	local data = UserConfig._config.data
 	data["buildactions_whitelist"] = data["buildactions_whitelist"] or {}
 	if type(data["buildactions_whitelist"]) ~= "table" then
@@ -52,7 +52,7 @@ function UserConfig.buildactions_whitelist_check(path)
 		data["buildactions_whitelist"] = {}
 	end
 	for _, whitelisted_path in pairs(data["buildactions_whitelist"]) do
-		if AVPath.common{whitelisted_path, path}:sub(1, #whitelisted_path) == whitelisted_path then
+		if AvPath.common{whitelisted_path, path}:sub(1, #whitelisted_path) == whitelisted_path then
 			return true
 		end
 	end

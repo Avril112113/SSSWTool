@@ -1,5 +1,5 @@
 local Utils = require "SelenScript.utils"
-local AVPath = require "avpath"
+local AvPath = require "avpath"
 
 local Config = require "tool.config"
 local Project = require "tool.project"
@@ -18,8 +18,8 @@ MultiPorject.__index = MultiPorject
 ---@param config_path string
 function MultiPorject.new(config_path)
 	local self = setmetatable({}, MultiPorject)
-	self.config_path = AVPath.norm(config_path)
-	self.project_path = AVPath.base(config_path)
+	self.config_path = AvPath.norm(config_path)
+	self.project_path = AvPath.base(config_path)
 
 	self.projects = {}
 	self.config = Config.new()
@@ -82,7 +82,7 @@ function MultiPorject:build()
 	local results = {}
 	for _, project in ipairs(self.projects) do
 		print()
-		print_info(("Building '%s'"):format(project.config.name or AVPath.relative(project.config_path, self.project_path)))
+		print_info(("Building '%s'"):format(project.config.name or AvPath.relative(project.config_path, self.project_path)))
 		local result = {project:build()}
 		table.insert(results, {project, result})
 	end

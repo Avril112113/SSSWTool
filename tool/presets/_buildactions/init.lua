@@ -6,10 +6,10 @@
 -- No guarantees are made about compatibility between versions of SSSWTool for build actions, however breaking changes will be avoided.
 --
 -- Do not trust the 'current working directory', projects can be built from any directory.
--- Use `AVPath.join{multiproject.project_path, "some_file.txt"}` to access a file within the project reliably.
+-- Use `AvPath.join{multiproject.project_path, "some_file.txt"}` to access a file within the project reliably.
 
 
-local AVPath = require "avpath"
+local AvPath = require "avpath"
 
 
 ---@class SSSWTool.BuildActions
