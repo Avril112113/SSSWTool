@@ -404,7 +404,6 @@ function Project:build()
 		print(("Missing entry file '%s'"):format(entry_file_name))
 		return -1
 	end
-	local entry_file_src = Utils.readFile(entry_file_path)
 
 	local underscore_build_path = AVPath.join{self.multiproject.project_path, "_build"}
 	lfs.mkdir(underscore_build_path)
