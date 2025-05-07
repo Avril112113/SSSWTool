@@ -95,13 +95,13 @@ function TransformerDefs:index(node)
 		end
 		local filepath, filepath_local, err = self.project:findModFile(modpath)
 		self.required_files = self.required_files or {}
-		if err or not filepath then
+		if err or not filepath or not filepath_local then
 			print_error(("Failed to find '%s'%s"):format(modpath, err))
 			return ASTNodes.LongComment{_parent = node, value = ("Failed to find '%s'"):format(modpath)}
 		else
 			filepath = AVPath.norm(filepath)
 			if self.required_files[filepath] == nil then
-				local ast, comments, errors = self.project:parse_file(self.parser, self.buildactions, filepath)
+				local ast, comments, errors = self.project:parse_file(self.parser, filepath)
 				if not ast then error(("Failed to parse '%s'"):format(filepath)) end
 				---@cast ast SelenScript.ASTNodes.block # Temporary conversion
 				self:_add_require(

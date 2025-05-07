@@ -25,7 +25,6 @@ end
 ---@field project SSSWTool.Project
 ---@field parser SelenScript.Parser
 ---@field config any
----@field buildactions SSSWTool.BuildActions
 
 
 ---@class SSSWTool.Project.Config
@@ -39,6 +38,7 @@ end
 ---@class SSSWTool.Project
 ---@field multiproject SSSWTool.MultiProject
 ---@field config SSSWTool.Project.Config
+---@field _buildactions SSSWTool.BuildActions?
 local Project = {}
 Project.__name = "Project"
 Project.__index = Project
@@ -153,6 +153,42 @@ function Project:ask_buildactions_whitelist()
 	return false
 end
 
+function Project:load_buildactions()
+	local buildactions_file = self:get_buildactions_init_path()
+	print_info(("Loading build actions from '%s'"):format(buildactions_file))
+	local revert = self:_set_buildactions_env()
+	local load_buildactions, err = loadfile(buildactions_file, "t", setmetatable({}, {__index=_G}))
+	revert()
+	if err or not load_buildactions then
+		print_error("Failed to load build actions:\n" .. tostring(err))
+		return false
+	end
+	local ok, buildactions = xpcall(load_buildactions, debug.traceback)
+	if not ok then
+		print_error("Failed to load build actions:\n" .. tostring(buildactions))
+		return false
+	elseif type(buildactions) ~= "table" then
+		print_error("Failed to load build actions:\nBuild actions didn't return a table.")
+		return false
+	end
+	self._buildactions = buildactions
+end
+
+---@param name string
+---@param ... any
+function Project:call_buildaction(name, ...)
+	local f = self._buildactions and self._buildactions[name]
+	if not f then return true end
+	local revert = self:_set_buildactions_env()
+	local ok, msg = xpcall(f, debug.traceback, self.multiproject, self, ...)
+	revert()
+	if not ok then
+		print_error(("Error in build action '%s'\n%s"):format(name, msg))
+		return false
+	end
+	return true
+end
+
 ---@param path string # Project local path to file.
 ---@param mode "file"|"directory"|"file or directory"|LuaFileSystem.AttributeMode
 ---@return string, string, nil
@@ -213,24 +249,19 @@ function Project:findModFile(modpath, lua_path)
 	return nil, nil, err
 end
 
----@param buildactions SSSWTool.BuildActions?
----@param name string
----@param ... any
-function Project:call_buildaction(buildactions, name, ...)
-	local f = buildactions and buildactions[name]
-	if not f then return true end
-	local ok, msg = xpcall(f, debug.traceback, self.multiproject, self, ...)
-	if not ok then
-		print_error(("Error in build action '%s'\n%s"):format(name, msg))
-		return false
+function Project:_set_buildactions_env()
+	local buildactions_folder = AVPath.base(self:get_buildactions_init_path())
+
+	local package_path = package.path
+	package.path = package.path .. (";%s/?.lua;%s/?/init.lua;"):format(buildactions_folder, buildactions_folder)
+	return function()
+		package.path = package_path
 	end
-	return true
 end
 
 ---@param parser SelenScript.Parser
----@param buildactions SSSWTool.BuildActions?
 ---@param file_path string
-function Project:parse_file(parser, buildactions, file_path)
+function Project:parse_file(parser, file_path)
 	---@class SelenScript.ASTNodes.Source
 	---@field _transformers {[string]:true}?
 
@@ -242,7 +273,7 @@ function Project:parse_file(parser, buildactions, file_path)
 	end
 	print_info(("  '%s'"):format(project_file_path))
 
-	if not self:call_buildaction(buildactions, "pre_file", file_path) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
+	if not self:call_buildaction("pre_file", file_path) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
 
 	local cache_dir = AVPath.join{self.multiproject.project_path, "_build", "cache"}
 	lfs.mkdir(cache_dir)
@@ -274,7 +305,7 @@ function Project:parse_file(parser, buildactions, file_path)
 
 	if ast == nil then
 		print_info("Parsing...")
-		if not self:call_buildaction(buildactions, "pre_parse", file_path) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
+		if not self:call_buildaction("pre_parse", file_path) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
 
 		ast, errors, comments = parser:parse(Utils.readFile(file_path), file_path)
 		if #errors > 0 then
@@ -282,14 +313,14 @@ function Project:parse_file(parser, buildactions, file_path)
 			for _, v in ipairs(errors) do
 				print_error(v.id .. ": " .. v.msg)
 			end
-			if not self:call_buildaction(buildactions, "post_parse", file_path, ast, errors, comments) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
+			if not self:call_buildaction("post_parse", file_path, ast, errors, comments) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
 			return ast, comments, errors
 		end
 
-		if not self:transform_file_ast(Project.TRANSFORM_ORDER_FILE, parser, buildactions, ast, "file") then
+		if not self:transform_file_ast(Project.TRANSFORM_ORDER_FILE, parser, ast, "file") then
 			ast = nil
 		else
-			if not self:call_buildaction(buildactions, "post_parse", file_path, ast, errors, comments) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
+			if not self:call_buildaction("post_parse", file_path, ast, errors, comments) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
 			local cpy = Utils.shallowcopy(ast)
 			cpy._transformers = Utils.deepcopy(self.config.transformers)
 			-- local packed = .encode(cpy)
@@ -297,17 +328,16 @@ function Project:parse_file(parser, buildactions, file_path)
 			Utils.writeFile(cache_path, packed, true)
 		end
 	end
-	if not self:call_buildaction(buildactions, "post_file", file_path, ast) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
+	if not self:call_buildaction("post_file", file_path, ast) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
 
 	return ast, comments or {}, errors or {}
 end
 
 ---@param transformer_order string[]
 ---@param parser SelenScript.Parser
----@param buildactions SSSWTool.BuildActions?
 ---@param ast SelenScript.ASTNodes.Source
 ---@param stage "file"|"post"
-function Project:transform_file_ast(transformer_order, parser, buildactions, ast, stage)
+function Project:transform_file_ast(transformer_order, parser, ast, stage)
 	for _, transformer_name in ipairs(transformer_order) do
 		if self.config.transformers[transformer_name] then
 			print_info(("Transforming AST with '%s' @ %s"):format(transformer_name, stage))
@@ -319,7 +349,6 @@ function Project:transform_file_ast(transformer_order, parser, buildactions, ast
 				project = self,
 				parser = parser,
 				config = self.config.transformers[transformer_name],
-				buildactions = buildactions,
 			})
 			if not ok then
 				if type(errors) == "string" and errors:find("STOP_BUILD_QUIET") then
@@ -343,6 +372,29 @@ function Project:transform_file_ast(transformer_order, parser, buildactions, ast
 	return true
 end
 
+function Project:get_parser()
+	if self._shared_parser ~= nil then return self._shared_parser end
+	print_info("Creating parser")
+	local parser, errors = Parser.new({
+		selenscript=false,
+	})
+	if #errors > 0 then
+		print_error("-- Parser creation Errors: " .. #errors .. " --")
+		for _, v in ipairs(errors) do
+			print_error((v.id or "NO_ID") .. ": " .. v.msg)
+		end
+		self._shared_parser = false
+		return false
+	end
+	if parser == nil or #errors > 0 then
+		print_error("Failed to create parser.")
+		self._shared_parser = false
+		return false
+	end
+	self._shared_parser = parser
+	return parser
+end
+
 function Project:build()
 	local time_start = os.clock()
 
@@ -357,9 +409,6 @@ function Project:build()
 	local underscore_build_path = AVPath.join{self.multiproject.project_path, "_build"}
 	lfs.mkdir(underscore_build_path)
 
-	---@type SSSWTool.BuildActions?
-	local buildactions
-	local revert_global_changes
 	local has_buildactions = self:has_buildactions()
 	local allowed_buildactions = has_buildactions and UserConfig.buildactions_whitelist_check(self.multiproject.project_path)
 	if has_buildactions and not allowed_buildactions then
@@ -368,76 +417,30 @@ function Project:build()
 	if has_buildactions and not allowed_buildactions then
 		print_error("Build actions not whitelisted for this directory, this may cause issues for this project.")
 	elseif has_buildactions then
-		local buildactions_file = self:get_buildactions_init_path()
-		local buildactions_folder = AVPath.base(self:get_buildactions_init_path())
-		print_info(("Loading build actions from '%s'"):format(buildactions_file))
-		local package_path = package.path
-		revert_global_changes = function()
-			---@diagnostic disable-next-line: assign-type-mismatch
-			package.path = package_path
-		end
-		package.path = package.path .. (";%s/?.lua;%s/?/init.lua;"):format(buildactions_folder, buildactions_folder)
-		local load_buildactions, err = loadfile(buildactions_file, "t", setmetatable({}, {__index=_G}))
-		if err or not load_buildactions then
-			print_error("Failed to load build actions:\n" .. tostring(err))
-			revert_global_changes()
-			return false
-		end
-		local ok, tbuildactions = xpcall(load_buildactions, debug.traceback)
-		if not ok then
-			print_error("Failed to load build actions:\n" .. tostring(tbuildactions))
-			revert_global_changes()
-			return false
-		elseif type(tbuildactions) ~= "table" then
-			print_error("Failed to load build actions:\nBuild actions didn't return a table.")
-			revert_global_changes()
-			return false
-		end
-		buildactions = tbuildactions
+		self:load_buildactions()
 	end
 
-	if not self:call_buildaction(buildactions, "pre_build") then print_error("Build stopped, see above.") return false end
+	if not self:call_buildaction("pre_build") then print_error("Build stopped, see above.") return false end
 
-	local parser
-	do
-		local errors
-		print_info("Creating parser")
-		parser, errors = Parser.new({
-			selenscript=false,
-		})
-		if #errors > 0 then
-			print_error("-- Parser creation Errors: " .. #errors .. " --")
-			for _, v in ipairs(errors) do
-				print_error((v.id or "NO_ID") .. ": " .. v.msg)
-			end
-			if revert_global_changes then revert_global_changes() end
-			return false
-		end
-		if parser == nil or #errors > 0 then
-			print_error("Failed to create parser.")
-			if revert_global_changes then revert_global_changes() end
-			return false
-		end
-	end
+	local parser = self:get_parser()
+	if not parser then return false end
 
 	local ast, comments
 	do
 		local errors
-		ast, comments, errors = self:parse_file(parser, buildactions, entry_file_path)
+		ast, comments, errors = self:parse_file(parser, entry_file_path)
 		if #errors > 0 then
-			if revert_global_changes then revert_global_changes() end
 			return false
 		end
 		assert(ast, "Invalid `ast`?\n= " .. tostring(ast))
 	end
 	---@cast ast -boolean
 
-	if not self:transform_file_ast(Project.TRANSFORM_ORDER_POST, parser, buildactions, ast, "post") then
-		if revert_global_changes then revert_global_changes() end
+	if not self:transform_file_ast(Project.TRANSFORM_ORDER_POST, parser, ast, "post") then
 		return false
 	end
 
-	if not self:call_buildaction(buildactions, "post_transform", ast) then print_error("Build stopped, see above.") return false end
+	if not self:call_buildaction("post_transform", ast) then print_error("Build stopped, see above.") return false end
 
 	do
 		-- Add comment at beginning of file to disable all diagnostics of the file.
@@ -473,7 +476,7 @@ function Project:build()
 		Utils.writeFile(AVPath.join{underscore_build_path, self.config.name .. ".lua"}, script_out)
 	end
 
-	if not self:call_buildaction(buildactions, "post_build") then print_error("Build stopped, see above.") return false end
+	if not self:call_buildaction("post_build") then print_error("Build stopped, see above.") return false end
 
 	if self.config.out ~= nil then
 		local sw_save_path
@@ -506,7 +509,6 @@ function Project:build()
 		end
 	end
 
-	if revert_global_changes then revert_global_changes() end
 	print_info(("Finished build in %.3fs."):format(os.clock()-time_start))
 	return true
 end
