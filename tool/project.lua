@@ -38,7 +38,7 @@ end
 ---@class SSSWTool.Project
 ---@field multiproject SSSWTool.MultiProject
 ---@field config SSSWTool.Project.Config
----@field _buildactions SSSWTool.BuildActions?
+---@field buildactions SSSWTool.BuildActions[]
 local Project = {}
 Project.__name = "Project"
 Project.__index = Project
@@ -120,6 +120,7 @@ end
 ---@param config SSSWTool.Project.Config
 function Project.new(multiproject, config)
 	local self = setmetatable({}, Project)
+	self.buildactions = {}
 	self.multiproject = multiproject
 	local ok, err = pcall(Project.validate_config, config)
 	if not ok then return nil, err end
@@ -153,6 +154,16 @@ function Project:ask_buildactions_whitelist()
 	return false
 end
 
+function Project:_set_buildactions_env()
+	local buildactions_parent_folder = (AvPath.base(AvPath.base(self:get_buildactions_init_path())))
+
+	local package_path = package.path
+	package.path = package.path .. (";%s/?.lua;%s/?/init.lua;"):format(buildactions_parent_folder, buildactions_parent_folder)
+	return function()
+		package.path = package_path
+	end
+end
+
 function Project:load_buildactions()
 	local buildactions_file = self:get_buildactions_init_path()
 	print_info(("Loading build actions from '%s'"):format(buildactions_file))
@@ -163,7 +174,9 @@ function Project:load_buildactions()
 		print_error("Failed to load build actions:\n" .. tostring(err))
 		return false
 	end
+	local revert = self:_set_buildactions_env()
 	local ok, buildactions = xpcall(load_buildactions, debug.traceback)
+	revert()
 	if not ok then
 		print_error("Failed to load build actions:\n" .. tostring(buildactions))
 		return false
@@ -171,20 +184,34 @@ function Project:load_buildactions()
 		print_error("Failed to load build actions:\nBuild actions didn't return a table.")
 		return false
 	end
-	self._buildactions = buildactions
+	self:add_buildactions(buildactions)
+end
+
+--- Adds a set of buildactions
+---@param buildactions SSSWTool.BuildActions
+---@param run_before boolean?  # Default: false
+function Project:add_buildactions(buildactions, run_before)
+	if run_before then
+		table.insert(self.buildactions, 1, buildactions)
+	else
+		table.insert(self.buildactions, buildactions)
+	end
 end
 
 ---@param name string
 ---@param ... any
 function Project:call_buildaction(name, ...)
-	local f = self._buildactions and self._buildactions[name]
-	if not f then return true end
-	local revert = self:_set_buildactions_env()
-	local ok, msg = xpcall(f, debug.traceback, self.multiproject, self, ...)
-	revert()
-	if not ok then
-		print_error(("Error in build action '%s'\n%s"):format(name, msg))
-		return false
+	for _, buildactions in ipairs(self.buildactions) do
+		local f = buildactions[name]
+		if not f then goto continue end
+		local revert = self:_set_buildactions_env()
+		local ok, msg = xpcall(f, debug.traceback, self.multiproject, self, ...)
+		revert()
+		if not ok then
+			print_error(("Error in build action '%s'\n%s"):format(name, msg))
+			return false
+		end
+	    ::continue::
 	end
 	return true
 end
@@ -255,16 +282,6 @@ function Project:findModFile(modpath, lua_path)
 		return full_path, src_path, nil
 	end
 	return nil, nil, err
-end
-
-function Project:_set_buildactions_env()
-	local buildactions_folder = AvPath.base(self:get_buildactions_init_path())
-
-	local package_path = package.path
-	package.path = package.path .. (";%s/?.lua;%s/?/init.lua;"):format(buildactions_folder, buildactions_folder)
-	return function()
-		package.path = package_path
-	end
 end
 
 --- Utility for buildactions
