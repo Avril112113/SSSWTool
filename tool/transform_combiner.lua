@@ -97,7 +97,7 @@ function TransformerDefs:index(node)
 		self.required_files = self.required_files or {}
 		if err or not filepath or not filepath_local then
 			print_error(("Failed to find '%s'%s"):format(modpath, err))
-			return ASTNodes.LongComment{_parent = node, value = ("Failed to find '%s'"):format(modpath)}
+			return ASTNodes.LongComment{_parent = node, prefix="--[[", value = ("Failed to find '%s'"):format(modpath), suffix="]]"}
 		else
 			filepath = AvPath.norm(filepath)
 			if self.required_files[filepath] == nil then
