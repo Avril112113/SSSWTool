@@ -50,15 +50,16 @@ end
 function BuildActions.post_parse(multiproject, project, path, ast, errors, comments)
 end
 
---- Called after a file is parsed successfully but before it's transformed.  
+--- Called after a file is parsed successfully and file transformers have run but before it's transformed into the main script.  
 --- Includes cached and non-cached files.  
+--- Any changes to the ast will not be cached.  
 ---@param multiproject SSSWTool.MultiProject
 ---@param project SSSWTool.Project
 ---@param path string
 function BuildActions.post_file(multiproject, project, path, ast)
 end
 
---- Called after everything is parsed (or loaded from cache) and has been transformed.  
+--- Called after everything is parsed (or loaded from cache) and has been fully transformed.  
 ---@param multiproject SSSWTool.MultiProject
 ---@param project SSSWTool.Project
 ---@param ast SelenScript.ASTNodes.Source # This is the fully combined output after all transformers has run (including the combiner and tracing).
