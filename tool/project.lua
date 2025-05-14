@@ -10,6 +10,7 @@ local ASTNodes = require "SelenScript.parser.ast_nodes"
 local AST = require "SelenScript.parser.ast"
 
 local UserConfig = require "tool.userconfig"
+local CACHE_VERSION = require "tool.cache_version"
 
 
 ---@param path string
@@ -305,6 +306,7 @@ end
 function Project:parse_file(parser, file_path)
 	---@class SelenScript.ASTNodes.Source
 	---@field _transformers {[string]:true}?
+	---@field _cache_version number
 
 	local project_file_path
 	if AvPath.getabs(file_path) then
@@ -330,7 +332,7 @@ function Project:parse_file(parser, file_path)
 		if ok then
 			ast = unpacked
 			---@cast ast SelenScript.ASTNodes.Source
-			if not ast._transformers or not Utils.deepeq(self.config.transformers, ast._transformers) then
+			if not ast._transformers or not Utils.deepeq(self.config.transformers, ast._transformers) or CACHE_VERSION ~= ast._cache_version then
 				print_info("Cache outdated...")
 				ast = nil
 				pcall(os.remove, cache_path)
@@ -363,8 +365,8 @@ function Project:parse_file(parser, file_path)
 		else
 			if not self:call_buildaction("post_parse", file_path, ast, errors, comments) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
 			local cpy = Utils.shallowcopy(ast)
+			cpy._cache_version = CACHE_VERSION
 			cpy._transformers = Utils.deepcopy(self.config.transformers)
-			-- local packed = .encode(cpy)
 			local packed = AMF3.encode(cpy)
 			Utils.writeFile(cache_path, packed, true)
 		end
@@ -485,7 +487,6 @@ function Project:build()
 	do
 		-- Add comment at beginning of file to disable all diagnostics of the file.
 		-- This isn't required but is nice to have.
-		-- table.insert(ast.block.block, 1, ASTHelpers.Nodes.LineComment(ast.block.block, "---", "@diagnostic disable"))
 		table.insert(ast.block.block, 1, ASTNodes.LineComment{
 			_parent = ast.block.block,
 			prefix = "---",
