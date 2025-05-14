@@ -1,0 +1,5 @@
+/_build/
+
+# Below is ignored for this repo, it's not the default.
+/_intellisense/
+/.vscode/

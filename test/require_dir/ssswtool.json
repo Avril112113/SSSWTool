@@ -1,0 +1,9 @@
+{
+	"name": "require_dir",
+	"entrypoint": "script.lua",
+	"src": ["."],
+	"out": "{SW_SAVE}/data/missions/{NAME}/script.lua",
+	"transformers": {
+		"tracing": false
+	}
+}

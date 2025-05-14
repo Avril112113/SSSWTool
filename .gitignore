@@ -2,6 +2,7 @@ tool/presets/addon/intellisense.lua
 release/
 SSSWTool*.zip
 
-test/
+test/*
+!test/require_dir
 
 build.log
