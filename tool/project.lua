@@ -307,6 +307,7 @@ function Project:parse_file(parser, file_path)
 	---@class SelenScript.ASTNodes.Source
 	---@field _transformers {[string]:true}?
 	---@field _cache_version number
+	---@field _comments (SelenScript.ASTNodes.LineComment|SelenScript.ASTNodes.LongComment)[]
 
 	local project_file_path
 	if AvPath.getabs(file_path) then
@@ -336,6 +337,8 @@ function Project:parse_file(parser, file_path)
 				print_info("Cache outdated...")
 				ast = nil
 				pcall(os.remove, cache_path)
+			else
+				comments = ast._comments
 			end
 		else
 			print_warn("Failed to load cached AST: " .. tostring(unpacked))
@@ -367,11 +370,12 @@ function Project:parse_file(parser, file_path)
 			local cpy = Utils.shallowcopy(ast)
 			cpy._cache_version = CACHE_VERSION
 			cpy._transformers = Utils.deepcopy(self.config.transformers)
+			cpy._comments = comments
 			local packed = AMF3.encode(cpy)
 			Utils.writeFile(cache_path, packed, true)
 		end
 	end
-	if not self:call_buildaction("post_file", file_path, ast) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
+	if not self:call_buildaction("post_file", file_path, ast, comments) then print_error("Build stopped, see above.") error("STOP_BUILD_QUIET") end
 
 	return ast, comments or {}, errors or {}
 end

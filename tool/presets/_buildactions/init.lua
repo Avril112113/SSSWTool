@@ -45,9 +45,9 @@ end
 ---@param project SSSWTool.Project
 ---@param path string
 ---@param ast SelenScript.ASTNodes.Source # Any changes to the AST will be cached!
----@param errors SelenScript.Error[]
 ---@param comments (SelenScript.ASTNodes.LineComment|SelenScript.ASTNodes.LongComment)[]
-function BuildActions.post_parse(multiproject, project, path, ast, errors, comments)
+---@param errors SelenScript.Error[]
+function BuildActions.post_parse(multiproject, project, path, ast, comments, errors)
 end
 
 --- Called after a file is parsed successfully and file transformers have run but before it's transformed into the main script.  
@@ -56,7 +56,8 @@ end
 ---@param multiproject SSSWTool.MultiProject
 ---@param project SSSWTool.Project
 ---@param path string
-function BuildActions.post_file(multiproject, project, path, ast)
+---@param comments (SelenScript.ASTNodes.LineComment|SelenScript.ASTNodes.LongComment)[]
+function BuildActions.post_file(multiproject, project, path, ast, comments)
 end
 
 --- Called after everything is parsed (or loaded from cache) and has been fully transformed.  
