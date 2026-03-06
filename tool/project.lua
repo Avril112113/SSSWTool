@@ -26,6 +26,7 @@ end
 ---@field project SSSWTool.Project
 ---@field parser SelenScript.Parser
 ---@field config any
+---@field check_config (fun(config:any):any)?
 
 
 ---@class SSSWTool.Project.Config
@@ -387,15 +388,22 @@ end
 function Project:transform_file_ast(transformer_order, parser, ast, stage)
 	for _, transformer_name in ipairs(transformer_order) do
 		if self.config.transformers[transformer_name] then
+			local TransformerDefs = assert(Project.TRANSFORMERS[transformer_name] and Project.TRANSFORMERS[transformer_name][stage], ("Missing transformer '%s' for stage '%s'"):format(transformer_name, stage))
+			local transformerConfig = self.config.transformers[transformer_name]
+			if TransformerDefs.check_config then
+				transformerConfig = TransformerDefs.check_config(transformerConfig)
+			end
+			if transformerConfig == false then
+				goto continue
+			end
 			print_info(("Transforming AST with '%s' @ %s"):format(transformer_name, stage))
 			local transform_time_start = os.clock()
-			local TransformerDefs = assert(Project.TRANSFORMERS[transformer_name] and Project.TRANSFORMERS[transformer_name][stage], ("Missing transformer '%s' for stage '%s'"):format(transformer_name, stage))
 			local transformer = Transformer.new(TransformerDefs)
 			local ok, errors = xpcall(transformer.transform, debug.traceback, transformer, ast, {
 				multiproject = self.multiproject,
 				project = self,
 				parser = parser,
-				config = self.config.transformers[transformer_name],
+				config = transformerConfig,
 			})
 			if not ok then
 				if type(errors) == "string" and errors:find("STOP_BUILD_QUIET") then
@@ -415,6 +423,7 @@ function Project:transform_file_ast(transformer_order, parser, ast, stage)
 		-- else
 		-- 	print_info(("Transforming AST skipped '%s' (disabled)"):format(transformer_name))
 		end
+	    ::continue::
 	end
 	return true
 end

@@ -1,0 +1,9 @@
+{
+	"name": "ssswtool_trace_check",
+	"entrypoint": "script.lua",
+	"src": ["."],
+	"out": "{SW_SAVE}/data/missions/{NAME}/script.lua",
+	"transformers": {
+		"tracing": false
+	}
+}

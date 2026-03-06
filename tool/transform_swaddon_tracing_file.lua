@@ -16,8 +16,9 @@ local SPECIAL_NAME = "SSSW_DBG"
 -- AST Node class field injections
 
 ---@class SelenScript.ASTNodes.Source
----@field _has_onTick true?
----@field _has_httpReply true?
+---@field _hooked_onTick true?
+---@field _hooked_httpReply true?
+---@field _hooked_onCustomCommand true?
 ---@field _traces_info SSSWTool.Transformer_Tracing_File.TraceInfo[]?
 
 ---@class SelenScript.ASTNodes.funcbody
@@ -37,7 +38,11 @@ local SPECIAL_NAME = "SSSW_DBG"
 
 
 ---@class SSSWTool.Transformer_Tracing_File : SSSWTool.Transformer
+---@field config { mode:"simple"|"full", hookOnTick:boolean, hookHttpReply:boolean, hookOnCustomCommand:boolean }
 local TransformerDefs = {}
+
+
+TransformerDefs.check_config = TracingPostDefs.check_config
 
 
 ---@param node SelenScript.ASTNodes.Node
@@ -96,12 +101,15 @@ function TransformerDefs:funcbody(node)
 		if name:sub(1, #SPECIAL_NAME) == SPECIAL_NAME then
 			return node
 		elseif parent_node.scope ~= "local" then
-			if name == "onTick" then
+			if name == "onTick" and self.config.hookOnTick then
 				prepend_node = TracingPostDefs._generate_onTick_code(self, node)
-				root_source._has_onTick = true
-			elseif name == "httpReply" then
+				root_source._hooked_onTick = true
+			elseif name == "httpReply" and self.config.hookHttpReply then
 				prepend_node = TracingPostDefs._generate_httpReply_code(self, node)
-				root_source._has_httpReply = true
+				root_source._hooked_httpReply = true
+			elseif name == "onCustomCommand" and self.config.hookOnCustomCommand then
+				prepend_node = TracingPostDefs._generate_onCustomCommand_code(self, node)
+				root_source._hooked_onCustomCommand = true
 			end
 		end
 	elseif parent_node.type == "function" then
@@ -116,12 +124,15 @@ function TransformerDefs:funcbody(node)
 				if name_node then
 					name = emitter:generate(name_node)
 					if parent_assign_node.scope ~= "local" then
-						if name == "onTick" then
+						if name == "onTick" and self.config.hookOnTick then
 							prepend_node = TracingPostDefs._generate_onTick_code(self, node)
-							root_source._has_onTick = true
-						elseif name == "httpReply" then
+							root_source._hooked_onTick = true
+						elseif name == "httpReply" and self.config.hookHttpReply then
 							prepend_node = TracingPostDefs._generate_httpReply_code(self, node)
-							root_source._has_httpReply = true
+							root_source._hooked_httpReply = true
+						elseif name == "onCustomCommand" and self.config.hookOnCustomCommand then
+							prepend_node = TracingPostDefs._generate_onCustomCommand_code(self, node)
+							root_source._hooked_onCustomCommand = true
 						end
 					end
 				end
@@ -179,7 +190,7 @@ local WHITELIST_STMT_TYPES = {
 }
 ---@param node SelenScript.ASTNodes.block
 function TransformerDefs:block(node)
-	if self.config ~= "full" then
+	if self.config.mode ~= "full" then
 		return node
 	end
 	if node._is_traced then

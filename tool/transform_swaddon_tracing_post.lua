@@ -14,7 +14,30 @@ local SPECIAL_NAME = "SSSW_DBG"
 
 
 ---@class SSSWTool.Transformer_Tracing_Post : SSSWTool.Transformer
+---@field config { mode:"simple"|"full", hookOnTick:boolean?, hookHttpReply:boolean?, hookOnCustomCommand:boolean? }
 local TransformerDefs = {}
+
+
+function TransformerDefs.check_config(config)
+	if type(config) ~= "table" then
+		config = {
+			mode = config,
+		}
+	end
+	if config.mode == false then
+		return false
+	end
+	if config.hookOnTick == nil then
+		config.hookOnTick = true
+	end
+	if config.hookHttpReply == nil then
+		config.hookHttpReply = true
+	end
+	if config.hookOnCustomCommand == nil then
+		config.hookOnCustomCommand = true
+	end
+	return config
+end
 
 
 ---@param node SelenScript.ASTNodes.Node
@@ -59,7 +82,7 @@ function TransformerDefs:_ensure_tracingblock(node)
 					_parent = node, how = ".", expr = ASTNodes.name{_parent = node, name = "level"}
 				}
 			}},
-			values = ASTNodes.expressionlist{_parent = node, ASTNodes.string{_parent = node, value = self.config == "full" and "full" or "simple"}}
+			values = ASTNodes.expressionlist{_parent = node, ASTNodes.string{_parent = node, value = self.config.mode == "full" and "full" or "simple"}}
 		})
 		table.insert(block, #block+1, ASTNodes.LineComment{_parent = source, prefix = "--", value = "#endregion"})
 		table.insert(block, #block+1, ASTNodes.LineComment{_parent = source, prefix = "--", value = "#region SSSWTool-Tracing-info"})
@@ -96,6 +119,7 @@ function TransformerDefs:_add_trace_info(trace_info)
 	})
 end
 
+---@param self SSSWTool.Transformer_Tracing_Post|SSSWTool.Transformer_Tracing_File
 ---@param node SelenScript.ASTNodes.Node
 ---@return SelenScript.ASTNodes.block
 function TransformerDefs:_generate_onTick_code(node)
@@ -112,16 +136,18 @@ function TransformerDefs:_generate_onTick_code(node)
 					}}}
 				}
 			},
-			ASTNodes.index{
+			self.config.hookHttpReply and ASTNodes.index{
 				_parent = node, how = nil, expr = ASTNodes.name{_parent = node, name = SPECIAL_NAME},
 				index = ASTNodes.index{
 					_parent = node, how = ".", expr = ASTNodes.name{_parent = node, name = "_sendCheckStackHttp"},
 					index = ASTNodes.call{_parent = node, args = ASTNodes.expressionlist{_parent = node}}
 				}
 			}
+			or ASTNodes.LineComment{_parent = node, prefix = "--", value = " hookHttpReply is disabled, skipping _sendCheckStackHttp()"}
 		}
 end
 
+---@param self SSSWTool.Transformer_Tracing_Post|SSSWTool.Transformer_Tracing_File
 ---@param node SelenScript.ASTNodes.Node
 ---@return SelenScript.ASTNodes.if
 function TransformerDefs:_generate_httpReply_code(node)
@@ -138,12 +164,30 @@ function TransformerDefs:_generate_httpReply_code(node)
 		}
 end
 
+---@param self SSSWTool.Transformer_Tracing_Post|SSSWTool.Transformer_Tracing_File
+---@param node SelenScript.ASTNodes.Node
+---@return SelenScript.ASTNodes.if
+function TransformerDefs:_generate_onCustomCommand_code(node)
+	return ASTNodes["if"]{
+			_parent = node,
+			condition = ASTNodes.index{
+				_parent = node, how = nil, expr = ASTNodes.name{_parent = node, name = SPECIAL_NAME},
+				index = ASTNodes.index{
+					_parent = node, how = ".", expr = ASTNodes.name{_parent = node, name = "_onCustomCommand"},
+					index = ASTNodes.call{_parent = node, args = ASTNodes.expressionlist{_parent = node, ASTNodes.var_args{_parent = node}}}
+				}
+			},
+			block = ASTNodes.block{_parent = node, ASTNodes["return"]{_parent = node, values = ASTNodes.expressionlist{_parent = node}}}
+		}
+end
+
 ---@param node SelenScript.ASTNodes.Source
 function TransformerDefs:source(node)
 	local root_source = assert(self:_get_root_source(node), "root_source_node ~= nil")
 
-	root_source._has_onTick = root_source._has_onTick or node._has_onTick
-	root_source._has_httpReply = root_source._has_httpReply or node._has_httpReply
+	root_source._hooked_onTick = root_source._hooked_onTick or node._hooked_onTick
+	root_source._hooked_httpReply = root_source._hooked_httpReply or node._hooked_httpReply
+	root_source._hooked_onCustomCommand = root_source._hooked_onCustomCommand or node._hooked_onCustomCommand
 
 	self:_ensure_tracingblock(root_source)
 
@@ -157,7 +201,7 @@ function TransformerDefs:source(node)
 	-- So, if `node == root_source` then we have finish transforming everything and can check if onTick or httpReply is missing.
 	if node == root_source then
 		local block = self._SWAddon_TracingBlock
-		if not root_source._has_onTick then
+		if not root_source._hooked_onTick and self.config.hookOnTick then
 			print_info("Missing onTick callback, one has been created for tracing.")
 			table.insert(block, ASTNodes.assign{
 				_parent = block, scope = nil,
@@ -167,9 +211,9 @@ function TransformerDefs:source(node)
 					block = ASTNodes.block{_parent = block, self:_generate_onTick_code(block)}
 				}}}
 			})
-			root_source._has_onTick = true
+			root_source._hooked_onTick = true
 		end
-		if not root_source._has_httpReply then
+		if not root_source._hooked_httpReply and self.config.hookHttpReply then
 			print_info("Missing httpReply callback, one has been created for tracing.")
 			table.insert(block, ASTNodes.assign{
 				_parent = block, how = nil,
@@ -179,7 +223,19 @@ function TransformerDefs:source(node)
 					block = ASTNodes.block{_parent = block, self:_generate_httpReply_code(block)}
 				}}}
 			})
-			root_source._has_httpReply = true
+			root_source._hooked_httpReply = true
+		end
+		if not root_source._hooked_onCustomCommand and self.config.hookOnCustomCommand then
+			print_info("Missing onCustomCommand callback, one has been created for tracing.")
+			table.insert(block, ASTNodes.assign{
+				_parent = block, how = nil,
+				names = ASTNodes.varlist{_parent = block, ASTNodes.index{_parent = block, how = nil, expr = ASTNodes.name{_parent = block, name = "onCustomCommand"}}},
+				values = ASTNodes.expressionlist{_parent = block, ASTNodes["function"]{_parent = block, funcbody = ASTNodes.funcbody{_parent = block,
+					args = ASTNodes.parlist{_parent = block, ASTNodes.var_args{_parent = block}},
+					block = ASTNodes.block{_parent = block, self:_generate_onCustomCommand_code(block)}
+				}}}
+			})
+			root_source._hooked_onCustomCommand = true
 		end
 	end
 	return node

@@ -1,0 +1,12 @@
+{
+	"name": "trace_check_target",
+	"entrypoint": "script.lua",
+	"src": ["."],
+	"out": "{SW_SAVE}/data/missions/{NAME}/script.lua",
+	"transformers": {
+		"tracing": {
+			"mode": "full",
+			"hookHttpReply": false
+		}
+	}
+}

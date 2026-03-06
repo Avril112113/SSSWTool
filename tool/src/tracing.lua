@@ -18,10 +18,14 @@ SSSW_DBG._server = {
 	getAddonData = server.getAddonData,
 	getAddonIndex = server.getAddonIndex,
 	httpGet = server.httpGet,
+	command = server.command,
 }
 ---@type string[]
 SSSW_DBG.expected_stack_onTick = {}
+---@type string[]
 SSSW_DBG.expected_stack_httpReply = {}
+---@type string[]
+SSSW_DBG.expected_stack_onCustomCommand = {}  -- Only used with another addon triggering the check
 
 function SSSW_DBG._trace_enter(id)
 	table.insert(SSSW_DBG._stack, #SSSW_DBG._stack+1, id)
@@ -75,6 +79,14 @@ function SSSW_DBG._handleHttp(port, request)
 	return false
 end
 
+function SSSW_DBG._onCustomCommand(full_message, peer_id, is_admin, is_auth, command, ...)
+	if is_admin and is_auth and command == "?ssswtool_trace_check" then
+		SSSW_DBG.check_stack(SSSW_DBG.expected_stack_onCustomCommand)
+		return true
+	end
+	return false
+end
+
 ---@param depth integer?
 function SSSW_DBG.stacktrace(depth)
 	depth = depth or #SSSW_DBG._stack
@@ -115,11 +127,14 @@ function SSSW_DBG.check_stack(expected)
 		local lines = SSSW_DBG.stacktrace(expected_start-1)
 		table.insert(lines, 1, "Detected unwound stacktrace:")
 		for _, s in ipairs(lines) do debug.log("[SW] [ERROR] " .. s) end
-		SSSW_DBG._server.announce(SSSW_DBG._server.getAddonData((SSSW_DBG._server.getAddonIndex())).name, table.concat(lines, "\n"), -1)
+		local addonIndex = SSSW_DBG._server.getAddonIndex()  -- Can't fail if we don't pass arg.
+		local addonData = SSSW_DBG._server.getAddonData(addonIndex)
+		SSSW_DBG._server.announce(addonData.name, table.concat(lines, "\n"), -1)
 		-- Invoke callback for error if it exists and its type is "function"
 		if type(SSSW_DBG.error_handler) == "function" then
 			SSSW_DBG.error_handler(SSSW_DBG.get_current_info())
 		end
+		SSSW_DBG._server.command(("ssswtool_trace_error %d"):format(addonIndex))
 		for i=expected_start-1,1,-1 do
 			if i > 0 then
 				table.remove(SSSW_DBG._stack, i)

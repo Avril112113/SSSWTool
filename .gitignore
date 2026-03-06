@@ -3,5 +3,6 @@ SSSWTool*.zip
 
 test/*
 !test/require_dir
+!test/external_trace_check
 
 build.log
