@@ -65,13 +65,19 @@ Basic usage example (values represent default)
 	"transformers": {
 		// The combiner makes `require()` work by including files and providing a custom
 		// implementation of `require()`, which works similar to standalone Lua.
+		// Possible options: true or false
 		"combiner": true,
 		// Tracing add compile time tracing information which is used to
 		// generate stack traces with correct file names and line numbers in-game.
 		// This should be `false` for releases
 		// as it affects runtime performance and will greatly impact the output size.
-		// Possible options: false, "simple" and "full"
-		"tracing": false
+		// Possible options: false, "simple", "full" or an object for additional configuration, see below;
+		"tracing": {
+			"mode": false,  // false, "simple" or "full"
+			"hookOnTick": true,
+			"hookHttpReply": true,  // Setting to false will also disable calls to server.httpGet from onTick hook, leaving the http request queue un-touched.
+			"hookOnCustomCommand": true
+		}
 	}
 }
 ```
