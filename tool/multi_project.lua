@@ -10,14 +10,14 @@ local Project = require "tool.project"
 ---@field project_path string # Normalized path to the project.
 ---@field projects (SSSWTool.Project|SSSWTool.MultiProject)[]
 ---@field config SSSWTool.Config
-local MultiPorject = {}
-MultiPorject.__name = "MultiPorject"
-MultiPorject.__index = MultiPorject
+local MultiProject = {}
+MultiProject.__name = "MultiProject"
+MultiProject.__index = MultiProject
 
 
 ---@param config_path string
-function MultiPorject.new(config_path)
-	local self = setmetatable({}, MultiPorject)
+function MultiProject.new(config_path)
+	local self = setmetatable({}, MultiProject)
 	self.config_path = AvPath.norm(config_path)
 	self.project_path = AvPath.base(config_path)
 
@@ -44,16 +44,16 @@ function MultiPorject.new(config_path)
 	return self
 end
 
-function MultiPorject:__tostring()
-	if self == MultiPorject then
-		return ("<%s>"):format(MultiPorject.__name)
+function MultiProject:__tostring()
+	if self == MultiProject then
+		return ("<%s>"):format(MultiProject.__name)
 	end
-	return ("<%s %p '%s'>"):format(MultiPorject.__name, self, self.config_path)
+	return ("<%s %p '%s'>"):format(MultiProject.__name, self, self.config_path)
 end
 
 ---@param project_config SSSWTool.Project.Config
 ---@param project_path string
-function MultiPorject:createProject(project_config, project_path)
+function MultiProject:createProject(project_config, project_path)
 	local project, err = Project.new(self, project_config)
 	if not project or err then
 		if err then
@@ -71,14 +71,14 @@ end
 
 ---@param config_path string
 ---@param project_path string
-function MultiPorject:createMultiProject(config_path, project_path)
-	local multiproject = MultiPorject.new(config_path)
+function MultiProject:createMultiProject(config_path, project_path)
+	local multiproject = MultiProject.new(config_path)
 	table.insert(self.projects, multiproject)
 	return multiproject
 end
 
 ---@return {[1]:SSSWTool.Project|SSSWTool.MultiProject,[2]:any[]}[]
-function MultiPorject:build()
+function MultiProject:build()
 	local results = {}
 	for _, project in ipairs(self.projects) do
 		print()
@@ -90,4 +90,4 @@ function MultiPorject:build()
 end
 
 
-return MultiPorject
+return MultiProject

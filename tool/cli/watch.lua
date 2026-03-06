@@ -49,7 +49,7 @@ return function(CLI)
 						end
 						table.insert(paths, src)
 					end
-				elseif project.__name == "MultiPorject" then
+				elseif project.__name == "MultiProject" then
 					---@cast project SSSWTool.MultiProject
 					table.insert(paths, project.config_path)
 					for _, subproject in pairs(project.projects) do
