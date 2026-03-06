@@ -27,7 +27,7 @@ function MultiProject.new(config_path)
 	if not ok then
 		return nil, err, code
 	end
-	if type(self.config.data) == "table" and type(self.config.data[1]) == "table" then
+	if type(self.config.data) == "table" and self.config.data[1] ~= nil then
 		print_info(("Multi Project config '%s'"):format(config_path))
 		for i, v in ipairs(self.config.data) do
 			if type(v) == "string" then
