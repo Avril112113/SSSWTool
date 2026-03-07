@@ -100,6 +100,7 @@ function TransformerDefs:_add_trace_info(trace_info)
 		self._sw_dbg_index = (self._sw_dbg_index and self._sw_dbg_index + 1) or 1
 		trace_info.swdbg_id_node.value = tostring(self._sw_dbg_index)
 	end
+	-- TODO: trace_info.name may have a placeholder `<FILL_TRACE_ID>` which needs replacing.
 	local node = trace_info.node
 	table.insert(self._SWAddon_TracingBlock, #self._SWAddon_TracingBlock, ASTNodes.assign{
 		_parent = node, scope = nil,

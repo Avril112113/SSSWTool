@@ -50,27 +50,33 @@ If you want to update this file you can safely re-run `ssswtool new addon ./` in
 
 ## ssswtool.json Config format
 This section describes the format of `ssswtool.json` and any referenced configs by it.  
-NOTE that comments are not supported, they must be removed from the examples to utilize them.
+NOTE that comments are not supported, they must be removed from the examples to utilize them.  
 
-Basic usage example (values represent default)  
+Example & explanation of `ssswtool.json`;  
 ```jsonc
 {
 	// "name" defaults to the containing directory name if not provided.
 	"name": "some_addon",
 	// "entrypoint" defaults to "script.lua" if not provided.
 	"entrypoint": "script.lua",
-	// Required, specifies where to look for entrypoint and for `require()`
-	// This can be an array, eg [".", "/PATH/TO/SOME/LIB"]
+	// Required, specifies where to look for the entrypoint and for other required files.
+	// This can be a string or an array, eg [".", "/PATH/TO/SOME/LIB"]
 	"src": ".",
+	// Configuration for various features SSSWTool provides;
 	"transformers": {
 		// The combiner makes `require()` work by including files and providing a custom
 		// implementation of `require()`, which works similar to standalone Lua.
 		// Possible options: true or false
 		"combiner": true,
-		// Tracing add compile time tracing information which is used to
-		// generate stack traces with correct file names and line numbers in-game.
-		// This should be `false` for releases
-		// as it affects runtime performance and will greatly impact the output size.
+		// Tracing tracks the start and finish points of sections of code, to detect when something doesn't return when it should.
+		// It also adds source information to the built code so that a traceback can be generated pointing to the original file and line which the error likely came from.
+		// It outputs a stack trace in chat and with `debug.log` when an error occurs.
+		// In some cases it will inform you about errors that stormworks otherwise fails to do so.
+		// In very rare cases, the default onTick & httpReply hooks aren't enough, enable the following addon to ensure the stack trace is being checked as soon as possible;
+		// https://steamcommunity.com/sharedfiles/filedetails/?id=3679918983
+		// The above addon runs `?ssswtool_trace_check` every tick to force a trace check, you can manually run this command if you are admin.
+		// - "simple" mode only traces function entrance and exit, it's performance impact is minor but not negligible.
+		// - "full" mode traces nearly every single line it can, providing line numbers very close to the error, but it can heavily affect performance.
 		// Possible options: false, "simple", "full" or an object for additional configuration, see below;
 		"tracing": {
 			"mode": false,  // false, "simple" or "full"
@@ -101,6 +107,19 @@ Multi-Project and config reference example
 	}
 ]
 ```
+
+## ssswtool.json schema
+For vscode, you can add the following field to your settings, or in `.vscode/settings.json`  
+```json
+"json.schemas": [
+	{
+		"fileMatch": ["ssswtool.json"],
+		"url": "https://raw.githubusercontent.com/Avril112113/SSSWTool/refs/heads/main/ssswtool_schema.json"
+	}
+],
+```
+Do note, the URL above directly links to the latest schema in the github repo!  
+It could be incorrect at times, though very unlikely unless you are on an older release of SSSWTool.  
 
 ## Adding to PATH
 Below are instructions on how to edit your PATH on Windows;  
